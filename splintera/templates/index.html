@@ -1,0 +1,533 @@
+<html lang='en-US'>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta http-equiv="Content-Language" content="en" />
+        <meta name="google" content="notranslate">
+        <title>Codanza</title>
+        {% load staticfiles %}
+        <link rel="stylesheet" type="text/css" href="{% static "css/layer_one.css" %}">
+        <link rel="stylesheet" type="text/css" href="{% static "css/graph.css" %}">
+        <link rel="stylesheet" type="text/css" href="{% static "css/rickshaw.min.css" %}">
+        <script src="{% static "js/angular.min.js" %}"></script>
+        <script src="{% static "js/angular.min.js" %}"></script>
+        <script src="{% static "js/jquery.min.js" %}"></script>
+        <script src="{% static "js/jquery-ui.min.js" %}"></script>
+        <script src="{% static "js/d3.min.js" %}"></script>
+        <script src="{% static "js/rickshaw.min.js" %}"></script>
+        <script src="{% static "js/worker.js" %}"></script>
+        <script>
+    var graph = "";
+    var loop = "";
+    $(document).ready(function()
+    {
+        //we have to go through these hoops to load a web worker from the CDN, otherwise we get a 'DOM error 18 cross domain' error if we use the CDN URL directly
+        console.log(worker_code);
+        // URL.createObjectURL
+        window.URL = window.URL || window.webkitURL;
+        var blob;
+        try
+        {
+            blob = new Blob([worker_code]);
+        }
+        catch (e)
+        { // Backwards-compatibility
+            window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
+            blob = new BlobBuilder();
+            blob.append(worker_code);
+            blob = blob.getBlob();
+        }
+        var layer_one_worker = new Worker(URL.createObjectURL(blob));
+        layer_one_worker.addEventListener("message", function (event)
+        {
+            console.log(event.data);
+            /*var data = { one: parseFloat(event.data) };//Math.floor(Math.random() * 40) + 120
+            graph.series.addData(data);
+            graph.render();*/
+        }, false);
+        layer_one_worker.addEventListener('error', function (event)
+        {
+            console.log("Error!\n");
+        }, false);
+        //worker.postMessage({data: int8View, moreData: anotherBuffer},[int8View.buffer, anotherBuffer]); use transferrable objects later instead of copying data
+        layer_one_worker.postMessage('init'); // Send data to our worker
+        
+        /*jQuery.ajaxSetup({async:false});
+	$.get('/api/', {  }, function(data)
+	{
+	    json_data = data;
+	},"json");
+	jQuery.ajaxSetup({async:true});
+        draw_graph(json_data);*/
+        default_sidebar();
+        //draw_sidebar();
+        //draw_streamgraph();
+    });
+
+    function stop_graphing()
+    {
+        window.clearInterval(loop);
+    }
+    
+    function default_sidebar()
+    {
+        //$("#status_color").html("");
+        //$("#status_message").html("");
+        $("#sidebar_graph").html("");
+    }
+    
+    function draw_sidebar()
+    {
+        var tv = 1000;
+        // instantiate our graph!
+        graph = new Rickshaw.Graph(
+        {
+            element: document.getElementById("sidebar_graph"),
+            width: 225,
+            height: 300,
+            renderer: 'line',
+            series: new Rickshaw.Series.FixedDuration([
+            { name: 'CPU', color:"#30c020" },
+            { name: 'Memory', color:"#6060c0" }
+            ], undefined,
+            {
+		timeInterval: tv,
+		maxDataPoints: 100,
+		timeBase: new Date().getTime() / 1000
+            })
+        });
+        graph.render();
+        var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+            graph: graph
+        });
+        //temporarily use random stuff - as getting flat data from server
+        loop = setInterval(function()
+        {
+            var data = { CPU: (Math.floor(Math.random() * 40) + 120) };
+            data.Memory = (Math.floor(Math.random() * 50) + 50 );
+            graph.series.addData(data);
+            graph.render();
+            //graph.update();
+        },2000);
+    }
+    
+    function draw_streamgraph()
+    {
+        var palette = new Rickshaw.Color.Palette( { scheme: 'classic9' } );
+        var seriesData = [ [], [], [] ];
+        var random = new Rickshaw.Fixtures.RandomData(150);
+
+        for (var i = 0; i < 150; i++) {
+            random.addData(seriesData);
+        }
+        
+        var graph = new Rickshaw.Graph( {
+	element: document.getElementById("sidebar_graph"),
+	width: 225,
+	height: 300,
+	renderer: 'area',
+	stroke: true,
+	preserve: true,
+	series: [
+		{
+			color: palette.color(),
+			data: seriesData[0],
+			name: 'MySQL:3306'
+		}, {
+			color: palette.color(),
+			data: seriesData[1],
+			name: 'HTTP:80'
+		}, {
+			color: palette.color(),
+			data: seriesData[2],
+			name: 'SSH:20'
+		}
+	]
+        } );
+
+        graph.render();
+        var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+	graph: graph
+        } );
+        
+        loop = setInterval( function() {
+	random.addData(seriesData);
+	graph.update();
+        }, 1000 );
+    }
+    
+    function draw_graph(json_data)
+    {
+        var width = $(window).width();
+        var height = $(window).height();
+        var canvas = d3.select('body').
+        append('svg:svg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr("layer","cloud")
+        .attr("viewBox", "0 0 " + width + " " + height )
+        .attr("preserveAspectRatio", "xMidYMid meet")
+        .attr("pointer-events", "all")
+        .call(d3.behavior.zoom().on("zoom", redraw));
+
+        var color = d3.scale.category10();
+
+        /*var force = d3.layout.force()
+        .charge(-180)
+        .linkDistance(70)
+        .size([width, height]);*/
+
+        var svg = canvas.append("svg:g");
+        
+        //draw_network();
+        
+        function redraw()
+        {
+            svg.attr("transform","translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");
+        }
+        
+        function draw_network()
+        {
+            /*var jsonCircles = [{ "x_axis": width/2, "y_axis": height/2, "radius": 20, "color" : "green" },
+                               { "x_axis": width/2 + 200, "y_axis": height/2 - 130, "radius": 20, "color" : "red"},
+                               { "x_axis": width/2 + 350, "y_axis": height/2 + 200, "radius": 20, "color" : "red"},
+                               { "x_axis": width/2 - 100, "y_axis": height/2 - 50, "radius": 20, "color" : "red"},
+                               { "x_axis": width/2 - 225, "y_axis": height/2 + 137, "radius": 20, "color" : "red"},
+                               { "x_axis": width/2 + 70, "y_axis": height/2 + 88, "radius": 20, "color" : "red"}];
+            
+            var circles = svg.selectAll("circle")
+                          .data(jsonCircles)
+                          .enter()
+                          .append("circle");
+
+            var circleAttributes = circles
+                       .attr("cx", function (d) { return d.x_axis; })
+                       .attr("cy", function (d) { return d.y_axis; })
+                       .attr("r", function (d) { return d.radius; })
+                       .style("fill", function(d) { return d.color; });
+                       
+            var circle = svg.append("line")
+                         .attr("x1", 200)
+                         .attr("y1", 500)
+                         .attr("x2", 300)
+                         .attr("y2", 590)
+                         .attr("stroke","gray");*/
+        }
+        
+        /*function show_left_sidebar()
+        {
+            $("#left_sidebar").show("slide", { direction: "left" }, 300);
+        }
+        
+        function hide_left_sidebar()
+        {
+            $("#left_sidebar").hide("slide", { direction: "left" }, 300);
+        }*/
+
+        d3.json("static/data.json", function(root)
+        {
+            var linkedByIndex = {};//matrix
+            
+            root.links.forEach(function(link)
+            {
+                linkedByIndex[link.source + "," + link.target] = 1;
+            });
+            
+            /*var force = d3.layout.force()
+            .nodes(root.nodes)
+            .links(root.links)
+            .size([width, height])
+            .linkDistance(function(d) { return d.distance; })
+            .charge(-300)
+            .on("tick", tick)
+            .start();*/
+            
+            
+            /*var lineFunction = d3.svg.line()
+            .x(function(d) { return d.x; })
+            .y(function(d) { return d.y; })
+            .interpolate("basis");*/
+            
+            // add the links
+            /*var lines = svg.append("path")
+            .attr("d", lineFunction(root.links))
+            .attr("stroke", "blue")
+            .attr("stroke-width", 2)
+            .attr("fill", "none");*/
+            
+            var line = d3.svg.line()
+            .interpolate("basis")
+            .x(function(d,i)
+            {
+                return width*(root.nodes[d.node].x/100);
+            })
+            .y(function(d,i)
+            {
+                if(i==1)
+                    return height/2;
+                else
+                    return height*(root.nodes[d.node].y/100);
+            });
+            
+            svg.selectAll(".line")
+            .data(root.links)
+            .enter().append("path")
+            .attr("class", "link")
+            .on("mouseover", mouse_edge('in'))
+            .on("mouseout", mouse_edge('out'))
+            .attr("stroke", "blue")
+            .attr("stroke-width", 2)
+            .attr("d", line);
+            
+            var nodes = svg.selectAll(".node")
+            .data(root.nodes)
+            .enter().append("g")
+            .attr("class","node")
+            .attr("transform", function (d) { return "translate(" + width*(d.x/100) + "," + height*(d.y/100) + ")"; })
+            .on("mouseover", mouse('in'))
+            .on("mouseout", mouse('out'))
+            .on("click", show_kids())
+            .attr("name", function(d) { return d.name; })
+            .attr("status", "closed");
+            
+            nodes
+            .append("circle")
+            //.attr("cx", function (d) { return width*(d.x/100); })
+            //.attr("cy", function (d) { return height*(d.y/100); })
+            .attr("r", function (d) { return d.size; })
+            .style("fill", function(d) { return color(d.group); })
+            
+            /*var path = svg.append("svg:g").selectAll("path")
+            .data(force.links())
+            .enter().append("svg:path")
+            .attr("class", "link")
+            //.attr("number", function(d) { return d.number; })
+            .attr("stroke-width", function(d) { return d.value + "px"; })*/
+            //.attr("display", function(d) { return (d.show==true) ? 'inline' : 'none'; })
+
+            // define the nodes
+            /*var node = svg.selectAll(".node")
+            .data(force.nodes())
+            .enter().append("g")
+            .attr("class", "node")
+            .attr("number", function(d) { return d.number; })
+            .attr("display", function(d) { return (d.show==true) ? 'inline' : 'none'; });
+            .on("mouseover", mouseover('in'))
+            .on("mouseout", mouseover('out'))
+            .on("click", showchildren())
+            .call(force.drag);*/
+
+            // add the nodes
+            /*node.append("circle")
+            .attr("r", function(d) { return d.size })
+            .style("fill", function(d) { return color(d.group); })*/
+
+            // add the text 
+            nodes.append("text")
+            .attr("x", 12)
+            .attr("opacity",1)
+            .attr("dy", ".35em")
+            .text(function(d)
+            {
+                return d.name;
+            });
+
+            // add the curvy lines
+            /*function tick()
+            {
+                path.attr("d", function(d)
+                {
+                    var dx = d.target.x - d.source.x,
+                    dy = d.target.y - d.source.y,
+                    dr = Math.sqrt(dx * dx + dy * dy);
+                    return "M" + 
+                    d.source.x + "," + 
+                    d.source.y + "A" + 
+                    dr + "," + dr + " 0 0,1 " + 
+                    d.target.x + "," + 
+                    d.target.y;
+                });
+                node.attr("transform", function(d)
+                { 
+                    return "translate(" + d.x + "," + d.y + ")";
+                });
+            }*/
+            
+            /*function neighboring(a, b)
+            {
+                return linkedByIndex[a.index + "," + b.index] || linkedByIndex[b.index + "," + a.index] || a.index == b.index;
+            }*/
+            
+            function show_kids()
+            {
+                return function(d)
+                {
+                    if (d.children!=undefined)
+                    {
+                        if(d.status=="closed")
+                        {
+                            d.status="open";
+                            
+                            //some made-up data
+                            var data = d.children;
+
+                            // tree-ify our fake data
+                            var dataTree = {
+                                children: data.map(function(d) { return { size: 1 }; })
+                            };
+
+                            // basic settings
+                            var w = 400,
+                            m = 20,
+                            maxRadius = d.size/4,
+                            padding = 2.5;
+    
+                            // size scale for data
+                            var radiusScale = d3.scale.sqrt()
+                            .domain([0, d3.max(data)])
+                            .range([0, maxRadius]);
+
+                            // determine the appropriate radius for the circle
+                            var roughCircumference = d3.sum(data.map(radiusScale)) * 2 +
+                            padding * (data.length - 1),
+                            radius = roughCircumference / (Math.PI * 2);
+
+                            // make a radial tree layout
+                            var tree = d3.layout.tree()
+                            .size([360, radius])
+                            .separation(function(a, b) {
+                            return radiusScale(a.size) + radiusScale(b.size);
+                            });
+
+                            // apply the layout to the data
+                            var sub_nodes = tree.nodes(dataTree);
+                            
+                            var sub_svg = d3.select(this).append("g")
+                            .attr("class","children");
+                            
+                            // create dom elements for the node
+                            var sub_node = sub_svg.selectAll(".sub_node")
+                            .data(sub_nodes.slice(1)) // cut out the root node, we don't need it
+                            .enter().append("g")
+                            .attr("class","sub_node")
+                            .on("mouseover", mouse('in'))
+                            .on("mouseout", mouse('out'))
+                            .attr("transform", function(d) {
+                            return "rotate(" + (d.x - 90) + ") translate(" + d.y + ")";
+                            })
+                            
+                            sub_node.append("text")
+                            .attr("x", 12)
+                            .attr("opacity",0)
+                            .attr("dy", ".35em")
+                            .attr("transform", function(d) {
+                            return "rotate(" + (0) + ") translate(" + 0 + ")";
+                            })
+                            .text(function(d)
+                            {
+                                return "sub node";
+                            });
+
+                            sub_node.append("circle")
+                            .attr("r", function(d) { return radiusScale(d.size); });
+                        }
+                        else if(d.status=="open")
+                        {
+                            d3.select(this).selectAll(".children").remove();
+                            d.status = "closed";
+                        }
+                    }
+                };
+            }
+            
+            function mouse_edge(type)
+            {
+                return function(d)
+                {
+                    if(type=="in")
+                    {
+                        console.log('hover edge');
+                        stop_graphing();
+                        default_sidebar();
+                        draw_streamgraph();
+                    }
+                    else if(type=="out")
+                    {
+                        //stop_graphing();
+                    }
+                };
+            }
+            
+            function mouse(type)
+            {
+                return function(d)
+                {
+                    /*var opacity = (type=="in" ? 0.1 : 1);
+                    node.style("stroke-opacity", function(o)
+                    {
+                        thisOpacity = neighboring(d, o) ? 1 : opacity;
+                        this.setAttribute('fill-opacity', thisOpacity);
+                        return thisOpacity;
+                    });
+                    path.style("stroke-opacity", opacity).style("stroke-opacity", function(o)
+                    {
+                        return o.source === d || o.target === d ? 1 : opacity;
+                    });*/
+                    if(type=="in")
+                    {
+                        //d3.select(this).select("text").attr("opacity",1);
+                        //show_left_sidebar();
+                        stop_graphing();
+                        default_sidebar();
+                        draw_sidebar();
+                    }
+                    else
+                    {
+                        //d3.select(this).select("text").attr("opacity",0);
+                        //hide_left_sidebar();
+                        //stop_graphing();
+                        //default_sidebar();
+                    }
+                };
+            }
+            /*function showchildren()
+            {
+                return function(d)
+                {
+                    if (d.children!=undefined)
+                    {
+                        if(d.status=="closed")
+                        {
+                            for (var child in d.children)
+                            {
+                                d3.select(".node[number='" + d.children[child].toString() + "']").attr("display","inline");
+                            }
+                            d3.selectAll(".link[number='" + d.number.toString() + "']").attr("display","inline");
+                            d.status="open";
+                            //svg.attr("transform","translate(" + d.x + "," + d.y + ")" + " scale(1.5)");
+                        }
+                        else if(d.status=="open")
+                        {
+                            for (var child in d.children)
+                            {
+                                d3.select(".node[number='" + d.children[child].toString() + "']").attr("display","none");
+                            }
+                            d3.selectAll(".link[number='" + d.number.toString() + "']").attr("display","none");
+                            d.status="closed";
+                            //svg.attr("transform","translate(0,0)" + " scale(1.0)");
+                        }
+                    }
+                }
+            }*/
+        });
+    }
+    </script>
+    </head>
+    <body>
+    <div align="center"><input type="text" id="search" value="Search"></div>
+    <div id="left_sidebar">
+        <table id='status' width='100%'><tr><td id='status_color' style='width:20%;height:30px'><svg xmlns='http://www.w3.org/2000/svg' version='1.1' style='display:block'><circle cx='15' cy='15' r='15' stroke='black' stroke-width='2' fill='green'/></svg></td><td id='status_message' style='width:80%'>All systems under control</td></tr></table>
+        <div id='sidebar_graph'></div>
+    </div>
+</body>
+</html>
+</html>

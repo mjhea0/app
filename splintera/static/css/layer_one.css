@@ -1,0 +1,52 @@
+body
+{
+    background-color: black;
+}
+#canvas
+{
+    z-index:0;
+}
+#left_sidebar
+{
+    width: 20%;
+    height: 85%;
+    z-index: 2;
+    position: absolute;
+    left: 20px;
+    top: 7.5%;
+    color: black;
+    background-color: PeachPuff;
+    -moz-border-radius: 0px 15px 15px 0px;
+    border-radius: 0px 15px 15px 0px;
+}
+#tabs { 
+    position:absolute; top:40px; left:8px; width:300px; height:300px; -webkit-transform:rotate(-90deg); z-index:1;
+}
+#tabs li {
+    height:20px; width:100px; background:PeachPuff; float:left; cursor:pointer; list-style-type:none; color:red; text-align: center;
+}
+/*#status circle
+{
+    fill: green;
+}*/
+/*
+#tabs
+{
+    line-height: 6;
+    overflow:hidden;
+    position: absolute;
+    z-index: 2;
+    top: 5px;
+    left: 0px;
+    width: 15px;
+}
+#tabs li
+{
+    color: red;
+    cursor: pointer;
+    -webkit-transform: rotate(-90deg);
+    -moz-transform: rotate(-90deg);
+    -o-transform: rotate(-90deg);
+    list-style-type: none;
+    float: left;
+}*/

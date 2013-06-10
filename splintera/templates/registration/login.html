@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}{{ Login }}{% endblock %}
+{% block css %}
+<link href='http://fonts.googleapis.com/css?family=Comfortaa' rel='stylesheet' type='text/css'>
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static "css/bootstrap.min.css" %}">
+<style>
+body
+{
+    background-color: black;
+    background-image: url('{% static "images/fractal.png" %}');
+    background-repeat:no-repeat;
+    background-position: right 20px;
+}
+#container
+{
+    width: 30%;
+    height: 170px;
+    background-color: white;
+    position: absolute;
+    top:0;
+    text-align: center;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    -moz-border-radius: 15px;
+    border-radius: 15px;
+    padding: 15px;
+    border: 2px solid #600000;
+}
+#logo
+{
+    font-family: 'Comfortaa', cursive; color: blue; font-weight: normal; font-size: 24px;
+    position: relative;
+    width: 100%;
+    text-align: center;
+}
+</style>
+{% endblock %}
+{% block js %}
+<script src="{% static "js/bootstrap.min.js" %}"></script>
+{% endblock %}
+{% block body %}
+    <div id='container'>
+        <span id='logo'>codanza</span>
+        {% if form.errors %}
+        <p>Your username and password didn't match. Please try again.</p>
+        {% endif %}
+
+        <table width='100%'>
+            <tr>
+                <td style='width:50%'>
+        <form method="post" action="{% url "django.contrib.auth.views.login" %}">
+        {% csrf_token %}
+        <table>
+        <tr>
+            <td><input id="id_username" maxlength="254" name="username" type="text" placeholder="Username" ></td>
+        </tr>
+        <tr>
+            <td><input id="id_password" name="password" type="password" placeholder="Password" ></td>
+        </tr>
+        <tr>
+            <td>
+                <button type="submit" class="btn">Login</button>
+                <input type="hidden" name="next" value="{{ next }}" />
+            </td>
+        </tr>
+        </table>
+        </form>
+        </td>
+        <td style='width:50%; border-left: 1px solid black; padding-left: 15px; vertical-align: top; text-align: center;'>
+            <a href="/accounts/register">Signup</a> for free!
+        </td>
+        </table>
+    </div>
+{% endblock %}

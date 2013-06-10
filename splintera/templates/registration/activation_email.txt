@@ -1,0 +1,6 @@
+Thanks for signing up to Codanza!
+
+Please use this link to activate your account:
+http://www.codanza.com/accounts/activate/{{ activation_key }}/
+
+the Codanza team
