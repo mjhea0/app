@@ -10,7 +10,7 @@ function initialize_websocket(host,port,uri)\
 onmessage = function (event)\
 {\
   if(event.data=='init')\
-    initialize_websocket('54.214.125.115',8888,'/ws');\
+    initialize_websocket('54.214.125.115',8888,'/web');\
   postMessage('Hi ' + event.data);\
 }";
   //ws.send('something');

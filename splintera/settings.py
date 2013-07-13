@@ -17,6 +17,7 @@ INSTALLED_APPS = (
     'social_auth',
     'tastypie',
     'splintera',
+    'splintera_client',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -27,11 +28,12 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'splintera.tracer.MiddleWare',
+    'splintera_client.tracer.MiddleWare',
 )
 
 # check if we are using a development or production machine
-DEBUG=False
+DEBUG=True
+SPLINTERA_KEY = 'skunkwerk'
 INTERNAL_IPS = ('127.0.0.1',)
 '''if os.environ.get('ENVIRONMENT')=='production':
     DEBUG = False

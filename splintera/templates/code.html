@@ -1,0 +1,131 @@
+<html lang='en-US'>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta http-equiv="Content-Language" content="en" />
+        <meta name="google" content="notranslate">
+        <title>Splintera - Code</title>
+        {% load staticfiles %}
+        <link rel="stylesheet" type="text/css" href="{% static "css/layer_one.css" %}">
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+<!--<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.0.8/d3.min.js"></script>-->
+<script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css" rel="stylesheet">
+<!--<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/themes/ui-lightness/jquery-ui.css">
+        <script src="{% static "js/angular.min.js" %}"></script>
+        <script src="{% static "js/jquery.min.js" %}"></script>
+        <script src="{% static "js/jquery-ui.min.js" %}"></script>-->
+        <script src="http://rawgithub.com/ajaxorg/ace-builds/master/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+        <style type="text/css" media="screen">
+        #editor { 
+        position: absolute;
+        top: 60px;
+        right: 0;
+        bottom: 100px;
+        left: 2%;
+        width: 65%;
+        }
+        #debugger { 
+        position: absolute;
+        width: 33%;
+        top: 60px;
+        left: 67%;
+        background-color: #272822;
+        bottom: 100px;
+        color: teal;
+        overflow:auto;
+        line-height: 20px;
+        }
+        #search {
+        position: absolute;
+        padding-top: 5px;
+        left:45%;
+        }
+        #trace_select
+        {
+            position: absolute;
+            right: 25;
+            top: 25;
+        }
+        #generate_button
+        {
+            position: absolute;
+            bottom: 5;
+            left:45%;
+        }
+        body
+        {
+        overflow: hidden;
+        background-color: #272822;
+        }
+        .ace_scrollbar {
+        display: none !important;
+        }
+        .lines_executed {
+        position:absolute;
+        background:rgba(72,61,139,.5);
+        z-index:20
+        }
+        </style>
+        <script>
+        $(document).ready(function()
+        {
+            var editor = ace.edit("editor");
+            editor.setTheme("ace/theme/monokai");
+            editor.getSession().setMode("ace/mode/python");
+            editor.scrollToRow(0);
+            editor.getSession().setUseWrapMode(true);
+            editor.setPrintMarginColumn(false);
+            editor.setReadOnly(true);
+            editor.getSession().on("changeScrollTop", function()
+            {
+                var position = editor.session.getScrollTop();
+                $("#debugger").scrollTop(position);
+            });
+            $("#debugger").scroll(function()
+            {
+                var position = $("#debugger").scrollTop();
+                editor.session.setScrollTop(position);
+            });
+    
+            /*function change_text()
+            {
+                editor.session.doc.setValue($("#switch_text").html());
+            }*/
+            var Range = ace.require('ace/range').Range;
+            {% for line in lines_executed %}
+                editor.session.addMarker(new Range({{ line }}, 0, {{ line|add:1 }}, 0), "lines_executed", "fullLine");// 0-indexed
+            {% endfor %}
+            //start row, start column, end row, end column
+        });
+        </script>
+    </head>
+    <body>
+        <div align="center"><input type="text" id="search" value="Search"></div>
+        <div id='trace_select'>
+            <div class="btn-group">
+                <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">Traces <span class="caret"></span></button>
+                <ul class="dropdown-menu">
+                  <li><a href="#">Action</a></li>
+                </ul>
+              </div>
+        </div>
+        <br/>
+        <br/>
+        <div id="editor">{{ code | join:"&#10;" }}
+        </div>
+        <div id="debugger">{% for counter in code %}
+                            {% if forloop.first %}
+                            {{ input_parameters }}
+                            {% endif %}
+                            <br/>
+                            {% if forloop.last %}
+                            {{ return_value }}
+                            {% endif %}
+                            {% endfor %}
+        </div>
+        <div id='generate_button'>
+            <button class="btn btn-large btn-primary btn-success" type="button">Generate Test</button>
+        </div>
+    </body>
+</html>

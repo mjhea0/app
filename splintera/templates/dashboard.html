@@ -1,0 +1,41 @@
+<html lang='en-US'>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta http-equiv="Content-Language" content="en" />
+        <meta name="google" content="notranslate">
+        <title>Splintera - Dashboard</title>
+        {% load staticfiles %}
+        <link rel="stylesheet" type="text/css" href="{% static "css/layer_one.css" %}">
+        <script src="{% static "js/angular.min.js" %}"></script>
+        <script src="{% static "js/jquery.min.js" %}"></script>
+        <script src="{% static "js/jquery-ui.min.js" %}"></script>
+        <!--<script src="{% static "js/worker.js" %}"></script>-->
+        <script>
+        $(document).ready(function()
+        {
+            
+        });
+    </script>
+    </head>
+    <body>
+    <div align="center"><input type="text" id="search" value="Search"></div>
+    <div id="left_sidebar">
+        <ul>
+        {% for trace in traces %}
+            <li><a href='/code/{{trace.0}}'>{{ trace.1 }}</a></li>
+        {% endfor %}
+        </ul>
+    </div>
+    <div id='untested_traces'>
+
+    </div>
+    <div id='broken tests'></div>
+    <div id='untested_code'></div>
+    <div id='code_coverage'></div>
+    <div id='analysis_stats'>
+        Running on 5 servers
+        Graph of # traces collected over time
+        Tests Created, Hours Saved
+    </div>
+    </body>
+</html>

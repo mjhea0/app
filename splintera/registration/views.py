@@ -9,9 +9,9 @@ from django.views.generic.edit import FormView
 from django.contrib.sites.models import RequestSite
 from django.contrib.sites.models import Site
 
-from flow.registration import signals
-from flow.registration.forms import RegistrationForm
-from flow.registration.models import RegistrationProfile
+from splintera.registration import signals
+from splintera.registration.forms import RegistrationForm
+from splintera.registration.models import RegistrationProfile
 
 class _RequestPassingFormView(FormView):
     """

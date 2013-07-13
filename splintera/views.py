@@ -6,80 +6,57 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def busy():
-    print 'called busy'
-    import random
-    f = open('test_data.txt','a')# open file and append
-    f.write(str(random.random()) + '\n')
+#@login_required()
+def dashboard(request):
+    #socket with urllib2
+    import urllib2
+    response = urllib2.urlopen('http://python.org/')
+    #file open
+    f = open('/home/imran/Code/cs.php')
     f.close()
 
-@login_required()
-def homepage(request):
-    i = 0
-    while(i<10):
-        busy()
-        i+=1
-    return render_to_response('index.html', {"foo": "bar"})
+    test = simple(2,5)
 
-def one(request):
-    # sql query - insert
+    # get the latest traces from the database for this group
+    group_id = 1
     import MySQLdb as mdb
-    db = mdb.connect('mysql.akbars.net','skunkwerk','motherlode721!','backhaul')
+    db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
     cur = db.cursor()
-    cur.execute("INSERT INTO splintera(email) VALUES ('test@nothing.com');")
-    cur.execute("INSERT INTO splintera(email) VALUES ('test@nothing.com');")
-    cur.execute("INSERT INTO splintera(email) VALUES ('test@nothing.com');")
-    cur.execute("INSERT INTO splintera(email) VALUES ('test@nothing.com');")
-    cur.execute("INSERT INTO splintera(email) VALUES ('test@nothing.com');")
-    return render_to_response('index.html', {"foo": "bar"})
+    query = "SELECT id, file_name, function_name FROM trace WHERE group_id=%s ORDER BY date DESC LIMIT 5"
+    result = cur.execute(query, (group_id))
+    traces = []
+    for id, file_name, function_name in cur.fetchall():
+        traces.append([id,str(file_name) + '/' + str(function_name)])
+    return render_to_response('dashboard.html', {"traces": traces})
 
-def two(request):
-    # computationally intensive
-    import gzip
-    f_in = open('book.pdf')
-    f_out = gzip.open('compressed.gz', 'wb')
-    f_out.writelines(f_in)
-    f_out.close()
-    f_in.close()
-    return render_to_response('index.html', {"foo": "bar"})
+def simple(x,y):
+    if x<y:
+        val = x * x;
+    elif x>y:
+        val = y/2;
+    return [val]
 
-def three(request):
-    # s3 get
-    from boto.s3.connection import S3Connection
-    con = S3Connection('AKIAISIDHI6SG5JKS2ZA','aJPmtc1MGmfewCih8T98ttlWP7GsrENciyzHgw87')
-    b = con.get_bucket('splintera') # substitute your bucket name here
-    from boto.s3.key import Key
-    k = Key(b)
-    k.key = 'ajax.php'
-    data = k.get_contents_as_string()
-    return render_to_response('index.html', {"foo": "bar"})
-
-def four(request):
-    # sql query - select
+def code(request, trace_id):
+    # get the code to display for the trace
     import MySQLdb as mdb
-    db = mdb.connect('mysql.akbars.net','skunkwerk','motherlode721!','backhaul')
+    db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
     cur = db.cursor()
-    cur.execute("SELECT * FROM splintera;")
-    row = cur.fetchone() # database query
-    return render_to_response('index.html', {"foo": "bar"})
-
-@login_required()
-def api(request):
-    response_data['nodes'] = []
-    response_data['nodes'].append({ "x": 60, "y": 30, "group":1, "size":8, "children": [1,2,3], "name":"Databases", "status":"closed" })
-    response_data['nodes'].append({ "x": 70, "y": 60, "group":2, "size":8, "children": [1,2,3,4,5], "name":"Memcached", "status":"closed" })
-    response_data['nodes'].append({ "x": 30, "y": 45, "group":4, "size":6, "name":"S3" })
-    response_data['nodes'].append({ "x": 40, "y": 72, "group":4, "size":6, "name":"CDN" })
-    response_data['nodes'].append({ "x": 70, "y": 37, "group":2, "size":6, "name":"Solr" })
-    response_data['nodes'].append({ "x": 35, "y": 59, "group":4, "size":6, "name":"Payments" })
-    response_data['nodes'].append({ "x": 45, "y": 32, "group":4, "size":6, "name":"Mailchimp" })
-    response_data['nodes'].append({ "x":50, "y": 50, "group":6, "size":10, "name":"Internet" })
-    response_data['links'] = []
-    response_data['links'].append([{"node":7},{"node":0},{"node":0}])
-    response_data['links'].append([{"node":7},{"node":1},{"node":1}])       ,
-    response_data['links'].append([{"node":7},{"node":2},{"node":2}])
-    response_data['links'].append([{"node":7},{"node":3},{"node":3}])
-    response_data['links'].append([{"node":7},{"node":4},{"node":4}])
-    response_data['links'].append([{"node":7},{"node":5},{"node":5}])
-    response_data['links'].append([{"node":7},{"node":6},{"node":6}])
-    return HttpResponse(simplejson.dumps(response_data), content_type="application/json")
+    query = "SELECT code, lines_executed, input_parameters, return_value FROM trace WHERE id=%s"
+    result = cur.execute(query, (trace_id))
+    traces = []
+    row = cur.fetchone()
+    code_object = row[0]
+    code_tuple = eval(code_object)
+    start_line_number = code_tuple[1]
+    lines = eval(row[1])
+    input_parameters = row[2]
+    return_value = row[3]
+    lines_executed = map(lambda line: int(line) - int(start_line_number), lines)
+    code_list = code_tuple[0]
+    code_lines = map(lambda line: line.rstrip(), code_list)
+    # get the input parameters
+    # get the return value
+    # get the lines executed
+    # get the unit test code
+    return render_to_response('code.html', {"code": code_lines, "lines_executed": lines_executed, "input_parameters": input_parameters, "return_value": return_value })
+#return HttpResponse(simplejson.dumps(response_data), content_type="application/json")

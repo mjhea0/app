@@ -21,8 +21,8 @@ from django.conf.urls import include
 from django.conf.urls import url
 from django.views.generic.base import TemplateView
 
-from flow.registration.views import ActivationView
-from flow.registration.views import RegistrationView
+from splintera.registration.views import ActivationView
+from splintera.registration.views import RegistrationView
 
 urlpatterns = patterns('',
                        url(r'^activate/complete/$',
@@ -41,5 +41,5 @@ urlpatterns = patterns('',
                        url(r'^register/complete/$',
                            TemplateView.as_view(template_name='registration/registration_complete.html'),
                            name='registration_complete'),
-                       (r'', include('flow.registration.auth_urls')),
+                       (r'', include('splintera.registration.auth_urls')),
                        )
