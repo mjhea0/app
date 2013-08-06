@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang='en-US'>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -7,7 +8,8 @@
         {% load staticfiles %}
         <link rel="stylesheet" type="text/css" href="{% static "css/layer_one.css" %}">
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
-<!--<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+<!--
 <script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.0.8/d3.min.js"></script>-->
 <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
 <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css" rel="stylesheet">
@@ -22,19 +24,26 @@
         top: 60px;
         right: 0;
         bottom: 100px;
-        left: 2%;
-        width: 65%;
+        left: 0px;
+        width: 70%;
         }
         #debugger { 
         position: absolute;
-        width: 33%;
+        width: 30%;
         top: 60px;
-        left: 67%;
+        left: 70%;
         background-color: #272822;
         bottom: 100px;
         color: teal;
         overflow:auto;
         line-height: 20px;
+        z-index: 2;
+        }
+        #test_code
+        {
+            left: 10px;
+            width:96%;
+            height:90%;
         }
         #search {
         position: absolute;
@@ -44,13 +53,13 @@
         #trace_select
         {
             position: absolute;
-            right: 25;
-            top: 25;
+            right: 25px;
+            top: 25px;
         }
         #generate_button
         {
             position: absolute;
-            bottom: 5;
+            bottom: 5px;
             left:45%;
         }
         body
@@ -66,8 +75,32 @@
         background:rgba(72,61,139,.5);
         z-index:20
         }
+        #test_code_sidebar
+        {
+            width: 30%;
+            /*float: right;*/
+            position: absolute;
+            right: 0px;
+            z-index: 1000;
+            height: 100%;
+            background-color: white;
+            -moz-border-radius-bottomleft: 25px;
+            border-bottom-left-radius: 25px;
+            -moz-border-radius-topleft: 25px;
+            border-top-left-radius: 25px;
+        }
+        #close_test_code_sidebar
+        {
+            position: absolute;
+            right: 5px;
+        }
         </style>
         <script>
+        function copy_to_clipboard()
+        {
+            //TODO: replace with jquery ui dialog
+            window.alert("Copy to clipboard and paste into file: Ctrl+C");
+        }
         $(document).ready(function()
         {
             var editor = ace.edit("editor");
@@ -87,6 +120,14 @@
                 var position = $("#debugger").scrollTop();
                 editor.session.setScrollTop(position);
             });
+            var test_code_editor = ace.edit("test_code");
+            test_code_editor.setTheme("ace/theme/monokai");
+            test_code_editor.getSession().setMode("ace/mode/python");
+            test_code_editor.scrollToRow(0);
+            test_code_editor.getSession().setUseWrapMode(true);
+            test_code_editor.setPrintMarginColumn(false);
+            test_code_editor.setReadOnly(true);
+            test_code_editor.renderer.setShowGutter(false); 
     
             /*function change_text()
             {
@@ -97,11 +138,31 @@
                 editor.session.addMarker(new Range({{ line }}, 0, {{ line|add:1 }}, 0), "lines_executed", "fullLine");// 0-indexed
             {% endfor %}
             //start row, start column, end row, end column
+            $("#test_code_sidebar").hide();
+            $("#generate").click(function()
+            {
+                $("#test_code_sidebar").show("slide", { direction: "right" }, 700);
+                test_code_editor.focus();
+                test_code_editor.gotoLine(1);
+                select = new Range(1,0,1,1);
+                test_code_editor.addSelectionMarker(select);
+            });
+            $("#copy_button").click(function()
+            {
+                test_code_editor.focus();
+                test_code_editor.gotoLine(1);
+                test_code_editor.selectAll();
+                copy_to_clipboard();
+            });
+            $("#close_test_code_sidebar").click(function()
+            {
+                $("#test_code_sidebar").hide("slide", { direction: "right" }, 300);
+            });
         });
         </script>
     </head>
     <body>
-        <div align="center"><input type="text" id="search" value="Search"></div>
+        <div align="center" style='z-index: 1;'><input type="text" id="search" value="Search"></div>
         <div id='trace_select'>
             <div class="btn-group">
                 <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">Traces <span class="caret"></span></button>
@@ -110,8 +171,6 @@
                 </ul>
               </div>
         </div>
-        <br/>
-        <br/>
         <div id="editor">{{ code | join:"&#10;" }}
         </div>
         <div id="debugger">{% for counter in code %}
@@ -125,7 +184,23 @@
                             {% endfor %}
         </div>
         <div id='generate_button'>
-            <button class="btn btn-large btn-primary btn-success" type="button">Generate Test</button>
+            <button class="btn btn-large btn-primary btn-success" id="generate" type="button">Generate Test</button>
+        </div>
+        <div id='test_code_sidebar'>
+        <p style="text-align:center">Unit Test Code:<span id='close_test_code_sidebar'><a href='#'>x</a></span></p>
+        <div id='test_code'>{{ test_code }}
+        </div>
+        <div class="btn-toolbar pagination-centered">
+            <div class="btn-group">
+                <button type="button" class="btn btn-success" id='copy_button'>Copy</button>
+                <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown">
+                <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li class="disabled"><a href="#">Commit</a></li>
+                </ul>
+            </div>
+        </div>
         </div>
     </body>
 </html>

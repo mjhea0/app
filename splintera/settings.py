@@ -40,7 +40,8 @@ INTERNAL_IPS = ('127.0.0.1',)
 else:
     #development/staging machine
     DEBUG = True
-    TEMPLATE_DEBUG = DEBUG
+#    TEMPLATE_DEBUG = DEBUG
+    TEMPLATE_DEBUG = True
     INTERNAL_IPS = ('127.0.0.1',)
     INSTALLED_APPS += (
         'debug_toolbar',
@@ -137,6 +138,11 @@ SECRET_KEY = 'khmpun2#6kz-c40k#j%&4utwwy74=)p)sy@*)a)im7gq=f)zup'
 
 DEFAULT_CONTENT_TYPE = 'text/html'
 
+TEMPLATE_CONTEXT_PROCESSORS = (
+  "django.contrib.auth.context_processors.auth",
+  "social_auth.context_processors.social_auth_by_type_backends"
+)
+
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
@@ -164,17 +170,20 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'dev@codanza.com'
 
 AUTHENTICATION_BACKENDS = (
-    'social_auth.backends.twitter.TwitterBackend',
-    'social_auth.backends.facebook.FacebookBackend',
-    'social_auth.backends.google.GoogleOAuthBackend',
-    'social_auth.backends.google.GoogleOAuth2Backend',
-    'social_auth.backends.google.GoogleBackend',
     'social_auth.backends.contrib.github.GithubBackend',
+    'social_auth.backends.contrib.bitbucket.BitbucketBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
 
-GOOGLE_OAUTH2_CLIENT_ID      = '178550587789.apps.googleusercontent.com'
-GOOGLE_OAUTH2_CLIENT_SECRET  = 'atk2csduMENTzQd0k9meHUmb'
+SOCIAL_AUTH_ENABLED_BACKENDS = ('github','bitbucket')
+
+#GOOGLE_OAUTH2_CLIENT_ID      = '178550587789.apps.googleusercontent.com'
+#GOOGLE_OAUTH2_CLIENT_SECRET  = 'atk2csduMENTzQd0k9meHUmb'
+GITHUB_APP_ID = '55f5050b42904002d207'
+GITHUB_API_SECRET = 'aa00d836e835a5dbf7aa489040beae9d9121fc2d'
+GITHUB_EXTENDED_PERMISSIONS = ['repo','user:email']
+BITBUCKET_CONSUMER_KEY = 'RCmse2r7CFvfdLBzjx'
+BITBUCKET_CONSUMER_SECRET = 'P2qDWsWr7cxGL5fTGgrvDr3gJGYBKszD'
 
 LOGIN_URL          = '/accounts/login'
 LOGIN_REDIRECT_URL = '/'

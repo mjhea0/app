@@ -40,7 +40,25 @@ body
 </style>
 {% endblock %}
 {% block js %}
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
 <script src="{% static "js/bootstrap.min.js" %}"></script>
+<script src="/static/js/oauth.js"></script>
+<script>
+$(document).ready(function()
+{
+    OAuth.initialize('OOES7u0kjsyI7KOsSxEO6S9qTtA');
+    $("#login").click(function(e)
+    {
+        e.preventDefault();
+        OAuth.popup('github', function(error, result)
+        {
+            //handle error with error
+            //use result.access_token in your API request
+            console.log(result.access_token);
+        });
+    });
+});
+</script>
 {% endblock %}
 {% block body %}
     <div id='container'>
@@ -48,7 +66,9 @@ body
         {% if form.errors %}
         <p>Your username and password didn't match. Please try again.</p>
         {% endif %}
-
+        <p><a href="{% url 'socialauth_begin' 'github' %}">Login with GitHub</a></p>
+        <p><a href="{% url 'socialauth_begin' 'bitbucket' %}">Login with Bitbucket</a></p>
+        <p><a href='#' id='login'>Login</a></p>
         <table width='100%'>
             <tr>
                 <td style='width:50%'>
