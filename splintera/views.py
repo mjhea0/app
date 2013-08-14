@@ -7,7 +7,7 @@ import string
 
 logger = logging.getLogger(__name__)
 
-#@login_required()
+@login_required()
 def dashboard(request):
     #socket with urllib2
     import urllib2
@@ -37,6 +37,7 @@ def simple(x,y):
         val = y/2
     return [val]
 
+@login_required()
 def code(request, test_id):
     # get the code to display for the trace
     import MySQLdb as mdb

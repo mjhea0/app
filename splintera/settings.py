@@ -18,6 +18,11 @@ INSTALLED_APPS = (
     'tastypie',
     'splintera',
     'splintera_client',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    # ... include the providers you want to enable:
+    'allauth.socialaccount.providers.github'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -54,7 +59,7 @@ else:
     }'''
 
 ADMINS = (
-    ('Imran Akbar', 'skunkwerk@gmail.com'),
+    ('Imran Akbar', 'imran@splintera.com'),
 )
 
 MANAGERS = ADMINS
@@ -139,8 +144,11 @@ SECRET_KEY = 'khmpun2#6kz-c40k#j%&4utwwy74=)p)sy@*)a)im7gq=f)zup'
 DEFAULT_CONTENT_TYPE = 'text/html'
 
 TEMPLATE_CONTEXT_PROCESSORS = (
+  "django.core.context_processors.request",
   "django.contrib.auth.context_processors.auth",
-  "social_auth.context_processors.social_auth_by_type_backends"
+  "social_auth.context_processors.social_auth_by_type_backends",
+  "allauth.account.context_processors.account",
+  "allauth.socialaccount.context_processors.socialaccount"
 )
 
 # List of callables that know how to import templates from various sources.
@@ -172,7 +180,9 @@ DEFAULT_FROM_EMAIL = 'dev@codanza.com'
 AUTHENTICATION_BACKENDS = (
     'social_auth.backends.contrib.github.GithubBackend',
     'social_auth.backends.contrib.bitbucket.BitbucketBackend',
-    'django.contrib.auth.backends.ModelBackend',
+    'django.contrib.auth.backends.ModelBackend',# Needed to login by username in Django admin, regardless of `allauth`
+    # `allauth` specific authentication methods, such as login by e-mail
+    'allauth.account.auth_backends.AuthenticationBackend'
 )
 
 SOCIAL_AUTH_ENABLED_BACKENDS = ('github','bitbucket')
@@ -188,10 +198,11 @@ BITBUCKET_CONSUMER_SECRET = 'P2qDWsWr7cxGL5fTGgrvDr3gJGYBKszD'
 LOGIN_URL          = '/accounts/login'
 LOGIN_REDIRECT_URL = '/'
 LOGIN_ERROR_URL    = '/accounts/login-error/'
-SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/oauth2callback/'
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/' # callback
 SOCIAL_AUTH_COMPLETE_URL_NAME  = 'socialauth_complete'
 SOCIAL_AUTH_ASSOCIATE_URL_NAME = 'socialauth_associate_complete'
 SOCIAL_AUTH_ASSOCIATE_BY_MAIL = True
+#SOCIAL_AUTH_NEW_USER_REDIRECT_URL = '/new-users-redirect-url/'
 
 SOCIAL_AUTH_UID_LENGTH = 222
 SOCIAL_AUTH_NONCE_SERVER_URL_LENGTH = 200
