@@ -13,7 +13,6 @@ urlpatterns = patterns('',
     # Examples:
     # url(r'^$', 'splintera.views.home', name='home'),
     # url(r'^splintera/', include('splintera.foo.urls')),
-    (r'^accounts/', include('allauth.urls')),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
@@ -24,5 +23,8 @@ urlpatterns = patterns('',
     url(r'', include('social_auth.urls')),
     url(r'^$', 'splintera.views.dashboard'),
     url(r'^code/(\d+)', 'splintera.views.code'),
+    url(r'^repos', 'splintera.views.repos'),
+    url(r'^clone_repo', 'splintera.views.clone_repo'),
+    url(r'^commit_test_to_repo', 'splintera.views.commit_test_to_repo'),
 #   url(r'^api/', include(v1_api.urls)),
 )

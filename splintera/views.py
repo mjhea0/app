@@ -1,9 +1,14 @@
 from django.shortcuts import render_to_response
+from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils import simplejson
+import requests
 import datetime
 import logging
 import string
+import json
+import subprocess
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +41,92 @@ def simple(x,y):
     elif x>y:
         val = y/2
     return [val]
+
+def get_auth_key(username):
+    import MySQLdb as mdb
+    db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
+    cur = db.cursor()
+    query = "SELECT t2.extra_data FROM auth_user t1 JOIN social_auth_usersocialauth t2 ON (t1.id=t2.user_id) WHERE t1.username=%s"
+    cur.execute(query, (username))
+    result = cur.fetchone()
+    #import ast
+    #data = ast.literal_eval(extra_data)
+    extra_data = result[0] #access_token = '2d3f3f4720a1bc8e1f03a14f4f388b0b655fb12b' # get their access token from the database
+    extra_data = string.split(extra_data,",")[0]
+    extra_data = string.split(extra_data,":")[1].strip()
+    access_token = extra_data.replace('"','').strip()
+    return access_token
+
+def repos(request):#user
+    """
+    colons indicate a URL parameter that you need to replace with a value
+    http://developer.github.com/v3/repos/
+    """
+    user = request.user.username #user = 'skunkwerk'
+    access_token = get_auth_key(user)
+    # first get any personal repos
+    all_repos = []
+    r = requests.get("https://api.github.com/users/" + user + "/repos",auth=(user, access_token))
+    if r.status_code==200:
+        for repo in r.json():
+            all_repos.append({'name':repo['name'],'url':repo['clone_url'],'language':repo['language']})
+            # to get all languages:
+            #r = requests.get("https://api.github.com/repos/skunkwerk/splintera-web/languages",auth=('skunkwerk', '2d3f3f4720a1bc8e1f03a14f4f388b0b655fb12b'))
+    # now get any repos of organizations the user is a member of
+    r = requests.get("https://api.github.com/users/" + user + "/orgs", auth=(user, access_token))
+    if r.status_code==200:
+        for org in r.json():
+            url = org['repos_url']
+            org_r = requests.get(url, auth=(user, access_token))
+            if org_r.status_code==200:
+                for repo in org_r.json():
+                    all_repos.append({'name':repo['name'],'url':repo['clone_url'],'language':repo['language']})
+    return HttpResponse(json.dumps(all_repos), content_type="application/json")
+
+def clone_repo(request):
+    """
+    """
+    url = request.GET.get('url')
+    name = request.GET.get('name')
+    user = request.user.username
+    access_token = get_auth_key(user)
+    trimmed_url = string.split(url,"github.com")[1]
+    repo = "https://" + user + ":" + access_token + "@github.com" + trimmed_url
+    # cd to /mnt/code_storage
+    folder = "/home/imran/Code/code_storage/" + name
+    proc = subprocess.Popen(["git","clone",repo,folder,"--progress"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, errors = proc.communicate(None) # will wait for the process to finish
+    # search for '100%' in errors to make sure it completed
+    # if not, log the error
+    # store which repo they've selected to test
+    import MySQLdb as mdb
+    db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
+    cur = db.cursor()
+    query = "INSERT INTO repository(username,url) VALUES(%s,%s)"
+    result = cur.execute(query, (user,url))
+    return HttpResponse(json.dumps(result), content_type="application/json")
+
+def commit_test_to_repo(request):
+    """
+    """
+    url = request.GET.get('url')
+    message = request.GET.get('message')
+    user = request.user.username
+    access_token = get_auth_key(user)
+    trimmed_url = string.split(url,"github.com")[1]
+    repo = "https://" + user + ":" + access_token + "@github.com" + trimmed_url
+    # cd to /mnt/code_storage
+    file_name = "/home/imran/Code/code_storage/" + name + 'test.py'
+    #TODO: use the github api to commit?
+    proc = subprocess.Popen(["git","add",file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, errors = proc.communicate(None) # will wait for the process to finish
+    proc = subprocess.Popen(["git","commit","-m '" + message + "'"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, errors = proc.communicate(None) # will wait for the process to finish
+    proc = subprocess.Popen(["git","push","origin"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, errors = proc.communicate(None) # will wait for the process to finish
+    #TODO: store this event in the database
+    result = output
+    return HttpResponse(json.dumps(result), content_type="application/json")
 
 @login_required()
 def code(request, test_id):
