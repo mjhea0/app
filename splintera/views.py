@@ -9,6 +9,8 @@ import string
 import json
 import subprocess
 import os
+import random
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +87,9 @@ def repos(request):#user
 
 def clone_repo(request):
     """
+    besides downloading a copy of the repository
+    we also generate a unique ID for the (account & repository)
+    that will be used to identify traces
     """
     url = request.GET.get('url')
     name = request.GET.get('name')
@@ -100,11 +105,93 @@ def clone_repo(request):
     # if not, log the error
     # store which repo they've selected to test
     import MySQLdb as mdb
+    SALT = 'BLHUepKp6LlqGkcU3DA3SizBYZnFTlBX'
+    input_seed = user + time.time() + get_client_ip(request) + name + random.SystemRandom().random()
+    unique_key = hashlib.sha256(input_seed + SALT).hexdigest()
     db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
     cur = db.cursor()
-    query = "INSERT INTO repository(username,url) VALUES(%s,%s)"
-    result = cur.execute(query, (user,url))
+    query = "INSERT INTO account_app_key(username,app_key) VALUES(%s,%s)"
+    result = cur.execute(query, (user,unique_key))
+    query = "INSERT INTO repository(app_key,url) VALUES(%s,%s)"
+    result = cur.execute(query, (unique_key,url))
     return HttpResponse(json.dumps(result), content_type="application/json")
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[-1].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+def attach(branch, trunk):
+    '''
+    Insert a branch of directories on its trunk.
+    '''
+    parts = branch.split('/', 1)
+    if len(parts) == 1:  # no more folders
+        trunk.append({parts[0]:[]})
+    else:
+        node, others = parts
+        index = None
+        #find the index of the node
+        for idx,val in enumerate(trunk):
+            if node in val.keys():
+                index = idx
+                break
+        if index==None:
+            trunk.append({node:[]})
+            index = len(trunk)
+        attach(others, trunk[index][node])
+
+def code_tree(request):
+    """
+    """
+    user = request.user.username
+    access_token = get_auth_key(user)
+    repo_name = request.GET.get('repo')
+    folders = []
+    r = requests.get("https://api.github.com/repos/" + user + "/" + repo_name + "/git/trees/master?recursive=1", auth=(user, access_token))
+    results = r.json()
+    for result in results['tree']:
+        if result['type']=='tree':
+            folders.append(result['path'])
+
+    main_dict = {'root':[{'/':[]}]}
+    for folder in folders:
+        attach(folder, main_dict['root'])
+    print main_dict
+
+    # convert to HTML
+    folders.insert(0,'/')
+    html = "<ul id='tree_list' class='collapsibleList'>"
+    html, counter = print_tree(html,main_dict['root'],folders,0)
+    html += "</ul>"
+    return HttpResponse(json.dumps(html), content_type="application/json")
+
+def store_test_in_folder(request):
+    """
+    """
+    user = request.user.username
+    folder = request.GET.get('folder')
+    url = request.GET.get('url')
+    import MySQLdb as mdb
+    db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
+    cur = db.cursor()
+    query = "UPDATE repository SET folder_to_store_tests_in=%s WHERE username=%s AND url =%s"
+    result = cur.execute(query, (folder,user,url))
+    return HttpResponse(json.dumps(result), content_type="application/json")
+
+def print_tree(html,node,folders,counter):
+    for item in node:
+        for key,value in item.items():
+            html += "<li><span class='tree-button'></span> <a href='#' class='tree' path='" + folders[counter] + "'>" + key + "</a>"
+            counter += 1
+            if len(value)>0:
+                new_html, counter = print_tree("",value,folders,counter)
+                html += "<ul>" + new_html + "</ul>"
+            html += "</li>"
+    return [html, counter]
 
 def commit_test_to_repo(request):
     """
@@ -117,7 +204,7 @@ def commit_test_to_repo(request):
     repo = "https://" + user + ":" + access_token + "@github.com" + trimmed_url
     # cd to /mnt/code_storage
     file_name = "/home/imran/Code/code_storage/" + name + 'test.py'
-    #TODO: use the github api to commit?
+    #TODO: use the github api to commit via PUSH
     proc = subprocess.Popen(["git","add",file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, errors = proc.communicate(None) # will wait for the process to finish
     proc = subprocess.Popen(["git","commit","-m '" + message + "'"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)

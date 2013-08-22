@@ -8,7 +8,6 @@
         {% load staticfiles %}
         <link rel="stylesheet" type="text/css" href="{% static "css/layer_one.css" %}">
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
-        <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
 <!--
 <script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.0.8/d3.min.js"></script>-->
 <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
@@ -17,7 +16,9 @@
         <script src="{% static "js/angular.min.js" %}"></script>
         <script src="{% static "js/jquery.min.js" %}"></script>
         <script src="{% static "js/jquery-ui.min.js" %}"></script>-->
-        <script src="http://rawgithub.com/ajaxorg/ace-builds/master/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+        <!--<script src="http://rawgithub.com/ajaxorg/ace-builds/master/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>!-->
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/ace/1.1.01/ace.js" type="text/javascript" charset="utf-8"></script>
+        <!--<script src="{% static "js/CollapsibleLists.compressed.js" %}" type="text/javascript" charset="utf-8"></script>-->
         <style type="text/css" media="screen">
         #editor { 
         position: absolute;
@@ -94,12 +95,215 @@
             position: absolute;
             right: 5px;
         }
+        #myModal .modal-body
+        {
+            max-height: 800px;
+        }
+        .collapsibleList li,li.collapsibleListOpen,li.collapsibleListClosed
+        {
+            list-style-type: none;
+        }
+        .collapsibleList li > .tree-button
+        {
+          display: inline-block;
+          min-height: 11px;
+          min-width: 11px;
+          background-image:url('{% static "images/button.png" %}');
+          cursor:auto;
+        }
+
+        li.collapsibleListOpen > .tree-button
+        {
+            display: inline-block;
+            min-height: 11px;
+            min-width: 11px;
+            background-image:url('{% static "images/button-open.png" %}');
+            cursor:pointer;
+        }
+
+        li.collapsibleListClosed  > .tree-button
+        {
+            display: inline-block;
+            min-height: 11px;
+            min-width: 11px;
+            background-image:url('{% static "images/button-closed.png" %}');
+            cursor:pointer;
+        }
         </style>
         <script>
+
+// create the CollapsibleLists object
+var CollapsibleLists =
+    new function(){
+
+      /* Makes all lists with the class 'collapsibleList' collapsible. The
+       * parameter is:
+       *
+       * doNotRecurse - true if sub-lists should not be made collapsible
+       */
+      this.apply = function(doNotRecurse){
+
+        // loop over the unordered lists
+        var uls = document.getElementsByTagName('ul');
+        for (var index = 0; index < uls.length; index ++){
+
+          // check whether this list should be made collapsible
+          if (uls[index].className.match(/(^| )collapsibleList( |$)/)){
+
+            // make this list collapsible
+            this.applyTo(uls[index], true);
+
+            // check whether sub-lists should also be made collapsible
+            if (!doNotRecurse){
+
+              // add the collapsibleList class to the sub-lists
+              var subUls = uls[index].getElementsByTagName('ul');
+              for (var subIndex = 0; subIndex < subUls.length; subIndex ++){
+                subUls[subIndex].className += ' collapsibleList';
+              }
+
+            }
+
+          }
+
+        }
+
+      };
+
+      /* Makes the specified list collapsible. The parameters are:
+       *
+       * node         - the list element
+       * doNotRecurse - true if sub-lists should not be made collapsible
+       */
+      this.applyTo = function(node, doNotRecurse){
+
+        // loop over the list items within this node
+        var lis = node.getElementsByTagName('li');
+        for (var index = 0; index < lis.length; index ++){
+
+          // check whether this list item should be collapsible
+          if (!doNotRecurse || node == lis[index].parentNode){
+
+            // prevent text from being selected unintentionally
+            if (lis[index].addEventListener){
+              lis[index].addEventListener(
+                  'mousedown', function (e){ e.preventDefault(); }, false);
+            }else{
+              lis[index].attachEvent(
+                  'onselectstart', function(){ event.returnValue = false; });
+            }
+
+            // add the click listener
+            spans = lis[index].getElementsByClassName('tree-button');
+            if (spans[0].addEventListener){
+              spans[0].addEventListener(
+                  'click', createClickListener(lis[index]), false);
+            }else{
+              spans[0].attachEvent(
+                  'onclick', createClickListener(lis[index]));
+            }
+
+            // close the unordered lists within this list item
+            toggle(lis[index]);
+
+          }
+
+        }
+
+      };
+
+      /* Returns a function that toggles the display status of any unordered
+       * list elements within the specified node. The parameter is:
+       *
+       * node - the node containing the unordered list elements
+       */
+      function createClickListener(node){
+
+        // return the function
+        return function(e){
+
+          // ensure the event object is defined
+          if (!e) e = window.event;
+
+          // find the list item containing the target of the event
+          var li = (e.target ? e.target : e.srcElement);
+          while (li.nodeName != 'LI') li = li.parentNode;
+
+          // toggle the state of the node if it was the target of the event
+          if (li == node) toggle(node);
+
+        };
+
+      }
+
+      /* Opens or closes the unordered list elements directly within the
+       * specified node. The parameter is:
+       *
+       * node - the node containing the unordered list elements
+       */
+      function toggle(node){
+
+        // determine whether to open or close the unordered lists
+        var open = node.className.match(/(^| )collapsibleListClosed( |$)/);
+
+        // loop over the unordered list elements with the node
+        var uls = node.getElementsByTagName('ul');
+        for (var index = 0; index < uls.length; index ++){
+
+          // find the parent list item of this unordered list
+          var li = uls[index];
+          while (li.nodeName != 'LI') li = li.parentNode;
+
+          // style the unordered list if it is directly within this node
+          if (li == node) uls[index].style.display = (open ? 'block' : 'none');
+
+        }
+
+        // remove the current class from the node
+        node.className =
+            node.className.replace(
+                /(^| )collapsibleList(Open|Closed)( |$)/, '');
+
+        // if the node contains unordered lists, set its class
+        if (uls.length > 0){
+          node.className += ' collapsibleList' + (open ? 'Open' : 'Closed');
+        }
+
+      }
+
+    }();
+
+        var selected_repository = null;
+        var selected_repository_url = null;
+        var folder_to_store_test_in = null;
+
         function copy_to_clipboard()
         {
             //TODO: replace with jquery ui dialog
             window.alert("Copy to clipboard and paste into file: Ctrl+C");
+        }
+        function prompt_for_test_storage_location()
+        {
+            $.get('/code_tree', { repo: selected_repository }, function(data)
+            {
+                //console.log(data);
+                $("#tree_dialog .modal-body").html(data);
+                CollapsibleLists.applyTo(document.getElementById('tree_list'));
+                $('#tree_dialog').modal();
+                $('a.tree').click(function(e)
+                {
+                    e.preventDefault();
+                    folder_to_store_test_in = $(this).attr('path');
+                    store_folder();
+                });
+            }, "json");
+        }
+        function store_folder()
+        {
+            $.get('/store_test_in_folder', { url:selected_repository_url, folder: folder_to_store_test_in }, function(data)
+            {
+                console.log(data);
+            }, "json");
         }
         $(document).ready(function()
         {
@@ -149,6 +353,8 @@
             });
             $("#copy_button").click(function()
             {
+                //TODO: if it's the first time, prompt for location to store
+                prompt_for_test_storage_location();
                 test_code_editor.focus();
                 test_code_editor.gotoLine(1);
                 test_code_editor.selectAll();
@@ -157,6 +363,36 @@
             $("#close_test_code_sidebar").click(function()
             {
                 $("#test_code_sidebar").hide("slide", { direction: "right" }, 300);
+            });
+            //prompt them to select a repo if this is their first login
+            $.get('/repos', function(data)
+            {
+                //create dialog
+                var html = "";
+                $.each(data, function(index,value)
+                {
+                    html += "<option value='" + value.url + "'>" + value.name + "</option>";
+                });
+                $("#repo_select option:first").after(html);
+                $('#myTab a:first').tab('show');
+                $('#myModal').modal();
+            }, "json");
+            $('#myTab a').click(function(e)
+            {
+                e.preventDefault();
+                $(this).tab('show');
+            });
+            $("#repo").on("change", function()
+            {
+                console.log('repo selected');
+                var url = $("#repo option:selected").val();
+                var name = $("#repo option:selected").text();
+                selected_repository = name;
+                selected_repository_url = url;
+                $.get('/clone_repo', { url: url, name: name }, function(data)
+                {
+
+                }, "json");
             });
         });
         </script>
@@ -187,20 +423,79 @@
             <button class="btn btn-large btn-primary btn-success" id="generate" type="button">Generate Test</button>
         </div>
         <div id='test_code_sidebar'>
-        <p style="text-align:center">Unit Test Code:<span id='close_test_code_sidebar'><a href='#'>x</a></span></p>
-        <div id='test_code'>{{ test_code }}
-        </div>
-        <div class="btn-toolbar pagination-centered">
-            <div class="btn-group">
-                <button type="button" class="btn btn-success" id='copy_button'>Copy</button>
-                <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown">
-                <span class="caret"></span>
-                </button>
-                <ul class="dropdown-menu">
-                    <li class="disabled"><a href="#">Commit</a></li>
-                </ul>
+            <p style="text-align:center">Unit Test Code:<span id='close_test_code_sidebar'><a href='#'>x</a></span></p>
+            <div id='test_code'>{{ test_code }}
+            </div>
+            <div class="btn-toolbar pagination-centered">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-success" id='copy_button'>Copy</button>
+                    <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown">
+                    <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li class="disabled"><a href="#">Commit</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
-        </div>
+        <!-- Modal -->
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title">Get Started</h4>
+                    </div>
+                <div class="modal-body">
+                <p><strong>1.  Please select the repository with the web app you'd like to test:</strong><span id='repo_select'><select name='repo' id='repo'><option value=''>Please select</option></select></span></p>
+                <p><strong>2.  Download the splintera client:</strong>
+                    <ul class="nav nav-tabs" id="myTab">
+                        <li class="active"><a href="#python">Python</a></li>
+                        <li><a href="#ruby">Ruby</a></li>
+                        <li><a href="#php">PHP</a></li>
+                        <li><a href="#javascript">Javascript</a></li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="python"><div class="well well-sm">$ pip install splintera-client</div></div>
+                        <div class="tab-pane" id="ruby"><div class="well well-sm">Ruby support is coming soon! <button type="button" class="btn">Email me when it's ready</button></div></div>
+                        <div class="tab-pane" id="php"><div class="well well-sm">PHP support is coming soon!  <button type="button" class="btn">Email me when it's ready</button></div></div>
+                        <div class="tab-pane" id="javascript"><div class="well well-sm">Javascript support is coming soon!  <button type="button" class="btn">Email me when it's ready</button></div></div>
+                    </div>
+                </p>
+                <p><strong>3.  Install splintera into your web app:</strong>
+                    <div class="well well-sm">In your settings.py file:
+                    <ul>
+                        <li>Add 'splintera_client' to your INSTALLED_APPS</li>
+                        <li>Add 'splintera_client.tracer.MiddleWare' to your MIDDLEWARE_CLASSES</li>
+                        <li>Add 'SPLINTERA_CLIENT_KEY'='abcdefasdyg283ytouhvjnscowuet'</li>
+                    </ul>
+                    </div>
+                </p>
+                <hr/>
+                <p align='center'>Now, just point your browser to your web app's homepage</p>
+                <p align='center'><img src="{% static "images/loading.gif" %}"></p>
+                <p align='center' class='text-warning'>Waiting for client connection</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+        <div class="modal fade" id="tree_dialog" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title">Please Select a Folder to Store the Test In</h4>
+                    </div>
+                <div class="modal-body">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal-dialog -->
+        </div><!-- /.modal -->
     </body>
 </html>

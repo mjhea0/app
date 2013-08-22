@@ -26,5 +26,7 @@ urlpatterns = patterns('',
     url(r'^repos', 'splintera.views.repos'),
     url(r'^clone_repo', 'splintera.views.clone_repo'),
     url(r'^commit_test_to_repo', 'splintera.views.commit_test_to_repo'),
+    url(r'^code_tree', 'splintera.views.code_tree'),
+    url(r'^store_test_in_folder', 'splintera.views.store_test_in_folder'),
 #   url(r'^api/', include(v1_api.urls)),
 )
