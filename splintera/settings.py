@@ -18,11 +18,6 @@ INSTALLED_APPS = (
     'tastypie',
     'splintera',
     'splintera_client',
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    # ... include the providers you want to enable:
-    'allauth.socialaccount.providers.github'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -38,7 +33,7 @@ MIDDLEWARE_CLASSES = (
 
 # check if we are using a development or production machine
 DEBUG=True
-SPLINTERA_KEY = 'skunkwerk'
+APP_KEY = '7a021015966ba81e99662003aeb7f4f72b23b9a3a34705868d7c26db6a496036'
 INTERNAL_IPS = ('127.0.0.1',)
 '''if os.environ.get('ENVIRONMENT')=='production':
     DEBUG = False
@@ -146,9 +141,7 @@ DEFAULT_CONTENT_TYPE = 'text/html'
 TEMPLATE_CONTEXT_PROCESSORS = (
   "django.core.context_processors.request",
   "django.contrib.auth.context_processors.auth",
-  "social_auth.context_processors.social_auth_by_type_backends",
-  "allauth.account.context_processors.account",
-  "allauth.socialaccount.context_processors.socialaccount"
+  "social_auth.context_processors.social_auth_by_type_backends"
 )
 
 # List of callables that know how to import templates from various sources.
@@ -181,8 +174,6 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.contrib.github.GithubBackend',
     'social_auth.backends.contrib.bitbucket.BitbucketBackend',
     'django.contrib.auth.backends.ModelBackend',# Needed to login by username in Django admin, regardless of `allauth`
-    # `allauth` specific authentication methods, such as login by e-mail
-    'allauth.account.auth_backends.AuthenticationBackend'
 )
 
 SOCIAL_AUTH_ENABLED_BACKENDS = ('github','bitbucket')

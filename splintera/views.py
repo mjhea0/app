@@ -11,6 +11,7 @@ import subprocess
 import os
 import random
 import hashlib
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +107,7 @@ def clone_repo(request):
     # store which repo they've selected to test
     import MySQLdb as mdb
     SALT = 'BLHUepKp6LlqGkcU3DA3SizBYZnFTlBX'
-    input_seed = user + time.time() + get_client_ip(request) + name + random.SystemRandom().random()
+    input_seed = user + str(time.time()) + str(get_client_ip(request)) + name + str(random.SystemRandom().random())
     unique_key = hashlib.sha256(input_seed + SALT).hexdigest()
     db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
     cur = db.cursor()
@@ -114,6 +115,7 @@ def clone_repo(request):
     result = cur.execute(query, (user,unique_key))
     query = "INSERT INTO repository(app_key,url) VALUES(%s,%s)"
     result = cur.execute(query, (unique_key,url))
+    db.commit() # for InnoDB tables
     return HttpResponse(json.dumps(result), content_type="application/json")
 
 def get_client_ip(request):
@@ -203,7 +205,7 @@ def commit_test_to_repo(request):
     trimmed_url = string.split(url,"github.com")[1]
     repo = "https://" + user + ":" + access_token + "@github.com" + trimmed_url
     # cd to /mnt/code_storage
-    file_name = "/home/imran/Code/code_storage/" + name + 'test.py'
+    file_name = "/mnt/code_storage/" + name + 'test.py'
     #TODO: use the github api to commit via PUSH
     proc = subprocess.Popen(["git","add",file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, errors = proc.communicate(None) # will wait for the process to finish

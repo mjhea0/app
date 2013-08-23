@@ -23,7 +23,7 @@ class TestUM(unittest.TestCase):
     def test_dashboard(self, mock_database,mock_response):
         mock_database.return_value.cursor.return_value.fetchall.return_value = [[1, 'C:/some_file', 'function_name']]
         #print mdb.connect().cursor().fetchall()
-        request = {}
+        request = {'user':'skunkwerk'}
         import views
         views.dashboard(request)
         mock_response.assert_called_with('dashboard.html', {'traces': [[1, 'C:/some_file/function_name']]})
