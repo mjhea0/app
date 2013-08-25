@@ -18,21 +18,21 @@ logger = logging.getLogger(__name__)
 @login_required()
 def dashboard(request):
     #socket with urllib2
+    user = request.user.username
     import urllib2
     response = urllib2.urlopen('http://python.org/')
     #file open
-    f = open('/home/imran/Code/cs.php')
+    f = open('/home/ubuntu/empty_file.txt')
     f.close()
 
     test = simple(2,5)
 
     # get the latest traces from the database for this group
-    group_id = 1
     import MySQLdb as mdb
     db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
     cur = db.cursor()
-    query = "SELECT t2.id, t2.file_name, t2.function_name FROM trace t1 JOIN test t2 ON (t2.trace_id=t1.id) WHERE t1.group_id=%s ORDER BY t1.date DESC LIMIT 5"
-    result = cur.execute(query, (group_id))
+    query = "SELECT t3.id, t3.file_name, t3.function_name FROM trace t1 JOIN account_app_key t2 ON (t1.app_key=t2.app_key) JOIN test t3 ON (t3.trace_id=t1.id) WHERE t2.username=%s ORDER BY t1.date DESC LIMIT 5"
+    result = cur.execute(query, (user))
     traces = []
     for id, file_name, function_name in cur.fetchall():
         traces.append([id,str(file_name) + '/' + str(function_name)])
@@ -93,30 +93,63 @@ def clone_repo(request):
     that will be used to identify traces
     """
     url = request.GET.get('url')
-    name = request.GET.get('name')
+    repo_name = request.GET.get('name')
     user = request.user.username
     access_token = get_auth_key(user)
     trimmed_url = string.split(url,"github.com")[1]
     repo = "https://" + user + ":" + access_token + "@github.com" + trimmed_url
     # cd to /mnt/code_storage
-    folder = "/home/imran/Code/code_storage/" + name
+    folder = "/mnt/code_storage/" + user + "/" + repo_name
     proc = subprocess.Popen(["git","clone",repo,folder,"--progress"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, errors = proc.communicate(None) # will wait for the process to finish
     # search for '100%' in errors to make sure it completed
     # if not, log the error
+    
     # store which repo they've selected to test
     import MySQLdb as mdb
     SALT = 'BLHUepKp6LlqGkcU3DA3SizBYZnFTlBX'
-    input_seed = user + str(time.time()) + str(get_client_ip(request)) + name + str(random.SystemRandom().random())
+    input_seed = user + str(time.time()) + str(get_client_ip(request)) + repo_name + str(random.SystemRandom().random())
     unique_key = hashlib.sha256(input_seed + SALT).hexdigest()
     db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
     cur = db.cursor()
     query = "INSERT INTO account_app_key(username,app_key) VALUES(%s,%s)"
     result = cur.execute(query, (user,unique_key))
-    query = "INSERT INTO repository(app_key,url) VALUES(%s,%s)"
-    result = cur.execute(query, (unique_key,url))
+
+    # create a virtualenv folder for them
+    venv_folder = "/mnt/code_storage/" + user + "/" + repo_name + "/splintera_venv"
+    try:
+        os.makedirs(venv_folder) # folder may not exist yet!
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
+    # make new venv in that folder
+    proc = subprocess.Popen(["virtualenv","--no-site-packages",venv_folder], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, errors = proc.communicate(None) # will wait for the process to finish
+
+    # if they have a requirements.txt file in the repo, use it to download their dependencies
+    r = requests.get("https://api.github.com/repos/" + user + "/" + repo_name + "/git/trees/master?recursive=1", auth=(user, access_token))
+    results = r.json()
+    files = []
+    for result in results['tree']:
+        if result['type']=='blob':
+            files.append([result['path'].split("/")[-1],result['path']])
+    path_to_requirements = None
+    for pair in files:
+        if pair[0]=='requirements.txt':
+            path_to_requirements = pair[1]
+            break
+    if path_to_requirements is not None:
+        local_path_to_requirements_file = "/mnt/code_storage" + trimmed_url + "/" + path_to_requirements
+        proc = subprocess.Popen(". " + venv_folder + "/bin/activate && pip install -r" + local_path_to_requirements_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        output, errors = proc.communicate(None) # will wait for the process to finish
+        # store this path in the database for the repo
+        query = "INSERT INTO repository(app_key,url,dependencies_file) VALUES(%s,%s,%s)"
+        result = cur.execute(query, (unique_key,url,path_to_requirements))
+    else:
+        query = "INSERT INTO repository(app_key,url) VALUES(%s,%s)"
+        result = cur.execute(query, (unique_key,url))
     db.commit() # for InnoDB tables
-    return HttpResponse(json.dumps(result), content_type="application/json")
+    return HttpResponse(json.dumps([output,errors]), content_type="application/json")
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
