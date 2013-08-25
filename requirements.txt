@@ -17,6 +17,6 @@ python-dateutil==2.1
 python-openid==2.2.5
 requests==1.2.3
 six==1.3.0
--e git://github.com/skunkwerk/splintera-client.git@07f6ef9f90ad19faf51c68611d57b82aa1eb3202#egg=splintera-dev
+-e git+https://github.com/skunkwerk/splintera-client.git@a16877a6a922e4d57d9ba1728dad68c4b45065b2#egg=splintera_client-dev
 websocket==0.2.1
 wsgiref==0.1.2
