@@ -22,7 +22,7 @@ def dashboard(request):
     import urllib2
     response = urllib2.urlopen('http://python.org/')
     #file open
-    f = open('/home/ubuntu/empty_file.txt')
+    f = open('/home/ubuntu/sandbox/splintera-server/requirements.txt')
     f.close()
 
     test = simple(2,5)
@@ -98,8 +98,8 @@ def clone_repo(request):
     access_token = get_auth_key(user)
     trimmed_url = string.split(url,"github.com")[1]
     repo = "https://" + user + ":" + access_token + "@github.com" + trimmed_url
-    # cd to /mnt/code_storage
-    folder = "/mnt/code_storage/" + user + "/" + repo_name
+    # cd to /mnt/storage/customer/code
+    folder = "/mnt/storage/customer/code/" + user + "/" + repo_name
     proc = subprocess.Popen(["git","clone",repo,folder,"--progress"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, errors = proc.communicate(None) # will wait for the process to finish
     # search for '100%' in errors to make sure it completed
@@ -115,15 +115,9 @@ def clone_repo(request):
     query = "INSERT INTO account_app_key(username,app_key) VALUES(%s,%s)"
     result = cur.execute(query, (user,unique_key))
 
-    # create a virtualenv folder for them
-    venv_folder = "/mnt/code_storage/" + user + "/" + repo_name + "/splintera_venv"
-    try:
-        os.makedirs(venv_folder) # folder may not exist yet!
-    except OSError as exception:
-        if exception.errno != errno.EEXIST:
-            raise
-    # make new venv in that folder
-    proc = subprocess.Popen(["virtualenv","--no-site-packages",venv_folder], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # create a new virtualenv
+    venv_folder = user + "/" + repo_name
+    proc = subprocess.Popen("source /usr/local/bin/virtualenvwrapper.sh && mkvirtualenv -i mock " + venv_folder, executable='bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output, errors = proc.communicate(None) # will wait for the process to finish
 
     # if they have a requirements.txt file in the repo, use it to download their dependencies
@@ -139,12 +133,46 @@ def clone_repo(request):
             path_to_requirements = pair[1]
             break
     if path_to_requirements is not None:
-        local_path_to_requirements_file = "/mnt/code_storage" + trimmed_url + "/" + path_to_requirements
-        proc = subprocess.Popen(". " + venv_folder + "/bin/activate && pip install -r" + local_path_to_requirements_file, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        local_path_to_requirements_file = "/mnt/storage/customer/code/" + user + "/" + repo_name + "/" + path_to_requirements
+        proc = subprocess.Popen("source /usr/local/bin/virtualenvwrapper.sh && workon " + user + "/" + repo_name + " && pip install -r" + local_path_to_requirements_file, executable='bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         output, errors = proc.communicate(None) # will wait for the process to finish
+
+    # if they have a settings.py file in the repo, use it to set the correct Python paths
+    results = r.json()
+    files = []
+    for result in results['tree']:
+        if result['type']=='blob':
+            files.append([result['path'].split("/")[-1],result['path']])
+    path_to_settings = None
+    for pair in files:
+        if pair[0]=='settings.py':
+            path_to_settings = pair[1]
+            break
+    venv_folder = "/mnt/storage/customer/environments/" + user + "/" + repo_name
+    if path_to_settings is not None:
+        local_path_to_settings_file = "/mnt/storage/customer/code/" + user + "/" + repo_name + "/" + path_to_settings
+        python_path = "export PYTHONPATH=" + folder
+        proc = subprocess.Popen("echo \"" + python_path + "\" >> " + venv_folder + "/bin/postactivate", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        output, errors = proc.communicate(None) # will wait for the process to finish
+        # figure out relative path from repo_name folder to the settings file
+        from os.path import relpath
+        relative = relpath(local_path_to_settings_file,folder)
+        relative_stripped = relative.strip(".py")
+        django_settings_path = relative_stripped.replace("/",".")
+        django_settings = "export DJANGO_SETTINGS_MODULE='" + django_settings_path + "'"
+        proc = subprocess.Popen("echo \"" + django_settings + "\" >> " + venv_folder + "/bin/postactivate", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        output, errors = proc.communicate(None) # will wait for the process to finish
+
+    if path_to_requirements is not None and path_to_settings is not None:
         # store this path in the database for the repo
+        query = "INSERT INTO repository(app_key,url,dependencies_file,settings_file) VALUES(%s,%s,%s,%s)"
+        result = cur.execute(query, (unique_key,url,path_to_requirements,path_to_settings))
+    elif path_to_requirements is not None:
         query = "INSERT INTO repository(app_key,url,dependencies_file) VALUES(%s,%s,%s)"
         result = cur.execute(query, (unique_key,url,path_to_requirements))
+    elif path_to_settings is not None:
+        query = "INSERT INTO repository(app_key,url,settings_file) VALUES(%s,%s,%s)"
+        result = cur.execute(query, (unique_key,url,path_to_settings))
     else:
         query = "INSERT INTO repository(app_key,url) VALUES(%s,%s)"
         result = cur.execute(query, (unique_key,url))
@@ -237,8 +265,8 @@ def commit_test_to_repo(request):
     access_token = get_auth_key(user)
     trimmed_url = string.split(url,"github.com")[1]
     repo = "https://" + user + ":" + access_token + "@github.com" + trimmed_url
-    # cd to /mnt/code_storage
-    file_name = "/mnt/code_storage/" + name + 'test.py'
+    # cd to /mnt/storage/customer/code
+    file_name = "/mnt/storage/customer/code/" + name + 'test.py'
     #TODO: use the github api to commit via PUSH
     proc = subprocess.Popen(["git","add",file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, errors = proc.communicate(None) # will wait for the process to finish
