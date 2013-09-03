@@ -340,7 +340,6 @@ def code(request, test_id):
     code_lines = map(lambda line: line.rstrip(), code_list)
     test_code = row[4].lstrip('\"').rstrip('\"').decode('string_escape')
     app_key = row[5]
-    #test_code = string.split(test_code,"\n")
 
     user = request.user.username
     query = "SELECT folder_to_store_tests_in FROM repository t1 JOIN trace t2 ON (t1.app_key=t2.app_key) JOIN test t3 ON (t2.id=t3.trace_id) WHERE t3.id=%s"
