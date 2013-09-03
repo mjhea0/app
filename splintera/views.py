@@ -213,23 +213,26 @@ def code_tree(request):
     user = request.user.username
     access_token = get_auth_key(user)
     repo_name = request.GET.get('repo')
-    folders = []
-    r = requests.get("https://api.github.com/repos/" + user + "/" + repo_name + "/git/trees/master?recursive=1", auth=(user, access_token))
-    results = r.json()
-    for result in results['tree']:
-        if result['type']=='tree':
-            folders.append(result['path'])
+    if repo_name is not None and repo_name!='':
+        folders = []
+        r = requests.get("https://api.github.com/repos/" + user + "/" + repo_name + "/git/trees/master?recursive=1", auth=(user, access_token))
+        results = r.json()
+        for result in results['tree']:
+            if result['type']=='tree':
+                folders.append(result['path'])
 
-    main_dict = {'root':[{'/':[]}]}
-    for folder in folders:
-        attach(folder, main_dict['root'])
-    print main_dict
+        main_dict = {'root':[{'/':[]}]}
+        for folder in folders:
+            attach(folder, main_dict['root'])
+        print main_dict
 
-    # convert to HTML
-    folders.insert(0,'/')
-    html = "<ul id='tree_list' class='collapsibleList'>"
-    html, counter = print_tree(html,main_dict['root'],folders,0)
-    html += "</ul>"
+        # convert to HTML
+        folders.insert(0,'/')
+        html = "<ul id='tree_list' class='collapsibleList'>"
+        html, counter = print_tree(html,main_dict['root'],folders,0)
+        html += "</ul>"
+    else:
+        html = "Please select a repository first."
     return HttpResponse(json.dumps(html), content_type="application/json")
 
 def store_test_in_folder(request):
@@ -243,6 +246,16 @@ def store_test_in_folder(request):
     cur = db.cursor()
     query = "UPDATE repository SET folder_to_store_tests_in=%s WHERE username=%s AND url =%s"
     result = cur.execute(query, (folder,user,url))
+
+    username_and_repo_name = url.strip(".git").split("https://github.com/")[1]
+
+    # move any existing tests in the splintera_tests folder to the folder they've selected
+    # this will happen if they setup the tracer before they select a folder to store tests in
+    if os.path.isdir("/mnt/storage/customer/code/" + username_and_repo_name + "/splintera_tests/"):
+        full_path_to_folder = "/mnt/storage/customer/code/" + username_and_repo_name + "/" + folder
+        proc = subprocess.Popen("cp /mnt/storage/customer/code/" + username_and_repo_name + "/splintera_tests/* " + full_path_to_folder, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        output, errors = proc.communicate(None)
+        #TODO: what if that file name already exists?  won't be copied
     return HttpResponse(json.dumps(result), content_type="application/json")
 
 def print_tree(html,node,folders,counter):
@@ -261,21 +274,49 @@ def commit_test_to_repo(request):
     """
     url = request.GET.get('url')
     message = request.GET.get('message')
+    test_id = request.GET.get('test_id')
+    exclude = set(string.punctuation)
+    message = ''.join(ch for ch in message if ch not in exclude)
     user = request.user.username
     access_token = get_auth_key(user)
     trimmed_url = string.split(url,"github.com")[1]
     repo = "https://" + user + ":" + access_token + "@github.com" + trimmed_url
+    username_and_repo_name = url.strip(".git").split("https://github.com/")[1]
     # cd to /mnt/storage/customer/code
-    file_name = "/mnt/storage/customer/code/" + name + 'test.py'
+
+    import MySQLdb as mdb
+    db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
+    cur = db.cursor()
+    query = "SELECT test_file_name FROM test WHERE id=%s"
+    result = cur.execute(query, (test_id))
+    traces = []
+    row = cur.fetchone()
+    test_file_name = row[0]
     #TODO: use the github api to commit via PUSH
-    proc = subprocess.Popen(["git","add",file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(["cd /mnt/storage/customer/code/" + username_and_repo_name + " && git","add",test_file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, errors = proc.communicate(None) # will wait for the process to finish
-    proc = subprocess.Popen(["git","commit","-m '" + message + "'"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(["cd /mnt/storage/customer/code/" + username_and_repo_name + " && git","commit","-m '" + message + "'"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, errors = proc.communicate(None) # will wait for the process to finish
-    proc = subprocess.Popen(["git","push","origin"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(["cd /mnt/storage/customer/code/" + username_and_repo_name + " && git","push","origin"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, errors = proc.communicate(None) # will wait for the process to finish
+    if output.find("Merge the remote changes (e.g. 'git pull')")!=-1 or errors.find("Merge the remote changes (e.g. 'git pull')")!=-1:
+        # do a git pull
+        proc = subprocess.Popen(["cd /mnt/storage/customer/code/" + username_and_repo_name + " && git","pull","--no-edit"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, errors = proc.communicate(None) # will wait for the process to finish
+        proc = subprocess.Popen(["cd /mnt/storage/customer/code/" + username_and_repo_name + " && git","push","origin"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, errors = proc.communicate(None) # will wait for the process to finish
     #TODO: store this event in the database
-    result = output
+    #succesful result looks like:
+    """
+    Counting objects: 8, done.
+    Compressing objects: 100% (5/5), done.
+    Writing objects: 100% (6/6), 1.05 KiB, done.
+    Total 6 (delta 2), reused 0 (delta 0)
+    To https://skunkwerk:2d3f3f4720a1bc8e1f03a14f4f388b0b655fb12b@github.com/skunkwerk/splintera-web.git
+    d9c0c89..c1ef5af  master -> master
+    """
+    success = output.find("error")
+    result = [output,errors]
     return HttpResponse(json.dumps(result), content_type="application/json")
 
 @login_required()
@@ -284,7 +325,7 @@ def code(request, test_id):
     import MySQLdb as mdb
     db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
     cur = db.cursor()
-    query = "SELECT code, lines_executed, input_parameters, return_value, test_code FROM test WHERE id=%s"
+    query = "SELECT t1.code, t1.lines_executed, t1.input_parameters, t1.return_value, t1.test_code, t2.app_key FROM test t1 JOIN trace t2 ON (t1.trace_id=t2.id) WHERE t1.id=%s"
     result = cur.execute(query, (test_id))
     traces = []
     row = cur.fetchone()
@@ -298,11 +339,38 @@ def code(request, test_id):
     code_list = code_tuple[0]
     code_lines = map(lambda line: line.rstrip(), code_list)
     test_code = row[4].lstrip('\"').rstrip('\"').decode('string_escape')
+    app_key = row[5]
     #test_code = string.split(test_code,"\n")
+
+    user = request.user.username
+    query = "SELECT folder_to_store_tests_in FROM repository t1 JOIN trace t2 ON (t1.app_key=t2.app_key) JOIN test t3 ON (t2.id=t3.trace_id) WHERE t3.id=%s"
+    result = cur.execute(query, (test_id))
+    row = cur.fetchone()
+    if row is not None:
+        folder_to_store_tests_in = row[0]
+    else:
+        folder_to_store_tests_in = None
+
+    query = "SELECT url FROM repository t1 JOIN account_app_key t2 ON (t1.app_key=t2.app_key) WHERE t2.username=%s"
+    result = cur.execute(query, (user))
+    row = cur.fetchone()#TODO: there can be > 1
+    if row is not None:
+        selected_repository_url = row[0]
+    else:
+        selected_repository_url = None
+
+    # is setup complete?
+    query = "SELECT url FROM repository t1 JOIN account_app_key t2 ON (t1.app_key=t2.app_key) WHERE t2.username=%s AND t1.received_data_from_tracer=1"
+    result = cur.execute(query, (user))
+    row = cur.fetchone()#TODO: there can be > 1
+    if row is not None:
+        setup_complete = "true";
+    else:
+        setup_complete = "false";# JS has lowercase booleans
 
     # get the input parameters
     # get the return value
     # get the lines executed
     # get the unit test code
-    return render_to_response('code.html', {"code": code_lines, "lines_executed": lines_executed, "input_parameters": input_parameters, "return_value": return_value, "test_code": test_code })
+    return render_to_response('code.html', {"code": code_lines, "lines_executed": lines_executed, "input_parameters": input_parameters, "return_value": return_value, "test_code": test_code, "folder_to_store_tests_in": folder_to_store_tests_in, "selected_repository_url": selected_repository_url, "setup_complete": setup_complete, "test_id": test_id, "app_key": app_key })
 #return HttpResponse(simplejson.dumps(response_data), content_type="application/json")

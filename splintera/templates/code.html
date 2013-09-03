@@ -8,10 +8,12 @@
         {% load staticfiles %}
         <link rel="stylesheet" type="text/css" href="{% static "css/layer_one.css" %}">
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
 <!--
 <script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.0.8/d3.min.js"></script>-->
 <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
 <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css" rel="stylesheet">
+<link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
 <!--<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/themes/ui-lightness/jquery-ui.css">
         <script src="{% static "js/angular.min.js" %}"></script>
         <script src="{% static "js/jquery.min.js" %}"></script>
@@ -63,6 +65,10 @@
             bottom: 5px;
             left:45%;
         }
+        .icon-ok-sign
+        {
+            color: green;
+        }
         body
         {
         overflow: hidden;
@@ -95,7 +101,7 @@
             position: absolute;
             right: 5px;
         }
-        #myModal .modal-body
+        #setup_dialog .modal-body
         {
             max-height: 800px;
         }
@@ -272,10 +278,12 @@ var CollapsibleLists =
       }
 
     }();
-
+        var setup_complete = {{ setup_complete }};
         var selected_repository = null;
-        var selected_repository_url = null;
-        var folder_to_store_test_in = null;
+        var selected_repository_url = {% if selected_repository_url %}"{{ selected_repository_url }}"{% else %}null{% endif %}
+        var folder_to_store_tests_in = {% if folder_to_store_tests_in %}"{{ folder_to_store_tests_in }}"{% else %}null{% endif %};
+        var test_id = {{ test_id }};
+        var app_key = "{{ app_key }}";
 
         function copy_to_clipboard()
         {
@@ -286,24 +294,36 @@ var CollapsibleLists =
         {
             $.get('/code_tree', { repo: selected_repository }, function(data)
             {
-                //console.log(data);
                 $("#tree_dialog .modal-body").html(data);
-                CollapsibleLists.applyTo(document.getElementById('tree_list'));
+                if(data!="Please select a repository first.")
+                    CollapsibleLists.applyTo(document.getElementById('tree_list'));
                 $('#tree_dialog').modal();
                 $('a.tree').click(function(e)
                 {
                     e.preventDefault();
-                    folder_to_store_test_in = $(this).attr('path');
+                    folder_to_store_tests_in = $(this).attr('path');
                     store_folder();
                 });
             }, "json");
         }
         function store_folder()
         {
-            $.get('/store_test_in_folder', { url:selected_repository_url, folder: folder_to_store_test_in }, function(data)
+            $.get('/store_test_in_folder', { url:selected_repository_url, folder: folder_to_store_tests_in }, function(data)
             {
                 console.log(data);
             }, "json");
+        }
+        function parse_message(message)
+        {
+            var command = message.command;
+            var value = message.val;
+            if(command=="received_data_from_tracer")
+            {
+                $("#waiting_for_trace_spinner").html("<i class='icon-ok-sign icon-large'>");
+                $("#waiting_for_trace_text").removeClass('text-warning').addClass('text-success');
+                $("#waiting_for_trace_text").html("We've received data from your server!");
+                $("#setup_dialog .modal-footer").html("<a href='#' class='btn btn-success' data-dismiss='modal'>Finish</a>");//will overwrite the existing 'close' button
+            }
         }
         $(document).ready(function()
         {
@@ -353,16 +373,28 @@ var CollapsibleLists =
             });
             $("#copy_button").click(function()
             {
-                //TODO: if it's the first time, prompt for location to store
-                prompt_for_test_storage_location();
                 test_code_editor.focus();
                 test_code_editor.gotoLine(1);
                 test_code_editor.selectAll();
                 copy_to_clipboard();
             });
-            $("#close_test_code_sidebar").click(function()
+            $("#commit_button").click(function()
             {
-                $("#test_code_sidebar").hide("slide", { direction: "right" }, 300);
+                //TODO: if it's the first time, prompt for location to store
+                if (folder_to_store_tests_in==null)
+                    prompt_for_test_storage_location();
+                if (folder_to_store_tests_in!=null)
+                {
+                    $.get('/commit_test_to_repo', { url: selected_repository_url, message: 'test message', test_id: test_id }, function(data)
+                    {
+                        console.log(data);
+                    });
+                }
+            });
+            $("#close_unit_test_sidebar").click(function(e)
+            {
+                e.preventDefault();
+                $("#test_code_sidebar").hide("slide", { direction: "right" });
             });
             //prompt them to select a repo if this is their first login
             $.get('/repos', function(data)
@@ -375,7 +407,7 @@ var CollapsibleLists =
                 });
                 $("#repo_select option:first").after(html);
                 $('#myTab a:first').tab('show');
-                $('#myModal').modal();
+                $('#setup_dialog').modal();
             }, "json");
             $('#myTab a').click(function(e)
             {
@@ -394,6 +426,22 @@ var CollapsibleLists =
 
                 }, "json");
             });
+            var data_pipe = new WebSocket("ws://54.244.113.211:8888/web");//TODO: replace with sockjs for older browsers
+            data_pipe.onopen = function (event)
+            {
+                data_pipe.send(JSON.stringify({'command':'subscribe', 'app_key': app_key }));
+            }
+            data_pipe.onmessage = function (event)
+            {
+                var message = event.data;
+                message = JSON.parse(message);
+                console.log(message);
+                parse_message(message);
+            }
+            window.onunload=function()
+            {
+                data_pipe.close();
+            };
         });
         </script>
     </head>
@@ -423,23 +471,18 @@ var CollapsibleLists =
             <button class="btn btn-large btn-primary btn-success" id="generate" type="button">Generate Test</button>
         </div>
         <div id='test_code_sidebar'>
-            <p style="text-align:center">Unit Test Code:<span id='close_test_code_sidebar'><a href='#'>x</a></span></p>
+            <p style="text-align:center">Unit Test Code:<span id='close_test_code_sidebar'><a href='#' id='close_unit_test_sidebar'>x</a></span></p>
             <div id='test_code'>{{ test_code }}
             </div>
             <div class="btn-toolbar pagination-centered">
                 <div class="btn-group">
                     <button type="button" class="btn btn-success" id='copy_button'>Copy</button>
-                    <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown">
-                    <span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li class="disabled"><a href="#">Commit</a></li>
-                    </ul>
+                    <button type="button" class="btn btn-success" id='commit_button'>Commit</button>
                 </div>
             </div>
         </div>
         <!-- Modal -->
-        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal fade" id="setup_dialog" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -474,8 +517,8 @@ var CollapsibleLists =
                 </p>
                 <hr/>
                 <p align='center'>Now, just point your browser to your web app's homepage</p>
-                <p align='center'><img src="{% static "images/loading.gif" %}"></p>
-                <p align='center' class='text-warning'>Waiting for client connection</p>
+                <p id='waiting_for_trace_spinner' align='center'><img src="{% static "images/loading.gif" %}"></p>
+                <p id='waiting_for_trace_text' align='center' class='text-warning'>Waiting for client connection</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
