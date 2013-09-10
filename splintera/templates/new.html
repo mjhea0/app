@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+{% block title %}{{ Splintera }}{% endblock %}
+{% load staticfiles %}
+{% block css %}
+        <link href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+        <link href='http://fonts.googleapis.com/css?family=Comfortaa' rel='stylesheet' type='text/css'>
+        <!--<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css" rel="stylesheet">-->
+        <style>
+        body
+        {
+            background-color: #ffee99;
+            overflow: hidden;
+        }
+        #top
+        {
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+        #left_pane
+        {
+            width: 20%;
+            height: 100%;
+            z-index: 2;
+            position: absolute;
+            left: 0px;
+            top: 7.5%;
+            color: black;
+        }
+        #middle_pane
+        {
+            width: 80%;
+            height: 100%;
+            top: 60px;
+            position: absolute;
+            left: 20%;
+            background-color: white;
+            -moz-border-radius: 20px 0px 0px 0px;
+            border-radius: 20px 0px 0px 0px;
+            box-shadow: 2px 2px 20px gray;
+            color: black;
+            padding: 10px 0px 0px 10px;
+        }
+        #right_pane
+        {
+            position: absolute;
+            z-index: 5;
+            display: none;
+            width: 20%;
+            height: 100%;
+            top: 60px;
+            right: 0px;
+        }
+        #logo
+        {
+            font-family: 'Comfortaa', cursive; color: blue; font-weight: normal; font-size: 24px;
+        }
+        #breadcrumbs
+        {
+            position: absolute;
+            left: 20%;
+            top: 20px;
+            z-index: 5;
+            display: none;
+        }
+        #search
+        {
+            width: 200px;
+            display: inline;
+            /*background: url(images/comment-author.gif) no-repeat scroll 7px 7px;
+            padding-left:30px;*/
+        }
+        #help
+        {
+            position: absolute;
+            bottom: 10px;
+        }
+        .table-striped tbody > tr:nth-child(odd) > td, .table-striped tbody > tr:nth-child(odd) > th
+        {
+            /*background-color: gray;
+            opacity: 0.5;*/
+        }
+        #editor
+        { 
+            height: 85%;
+        }
+        #debugger
+        { 
+            background-color: #272822;
+            color: teal;
+            overflow:auto;
+            line-height: 20px;
+        }
+        #test_code
+        {
+            left: 10px;
+            width:96%;
+            height:80%;
+        }
+        #trace_select
+        {
+            position: absolute;
+            right: 25px;
+            top: 25px;
+        }
+        #generate_button
+        {
+            margin-top: 8px;
+        }
+        .icon-ok-sign
+        {
+            color: green;
+        }
+        .ace_scrollbar {
+        display: none !important;
+        }
+        .lines_executed {
+        position:absolute;
+        background:rgba(72,61,139,.5);
+        z-index:20
+        }
+        #test_code_sidebar
+        {
+            height: 100%;
+            background-color: white;
+            -moz-border-radius-bottomleft: 25px;
+            border-bottom-left-radius: 25px;
+            -moz-border-radius-topleft: 25px;
+            border-top-left-radius: 25px;
+            border: 1px solid black;
+        }
+        #close_test_code_sidebar
+        {
+            position: absolute;
+            right: 5px;
+        }
+        #setup_dialog .modal-body
+        {
+            max-height: 800px;
+        }
+        #setup_dialog .modal-dialog
+        {
+            min-width: 825px;
+        }
+        .collapsibleList li,li.collapsibleListOpen,li.collapsibleListClosed
+        {
+            list-style-type: none;
+        }
+        .collapsibleList li > .tree-button
+        {
+          display: inline-block;
+          min-height: 11px;
+          min-width: 11px;
+          background-image:url('{% static "images/button.png" %}');
+          cursor:auto;
+        }
+
+        li.collapsibleListOpen > .tree-button
+        {
+            display: inline-block;
+            min-height: 11px;
+            min-width: 11px;
+            background-image:url('{% static "images/button-open.png" %}');
+            cursor:pointer;
+        }
+
+        li.collapsibleListClosed  > .tree-button
+        {
+            display: inline-block;
+            min-height: 11px;
+            min-width: 11px;
+            background-image:url('{% static "images/button-closed.png" %}');
+            cursor:pointer;
+        }
+        #copy_commit
+        {
+            margin-top: 8px;
+            text-align: center;
+        }
+        #copy_commit .btn-group
+        {
+            float: none;
+        }
+        #code_coverage
+        {
+            text-align: center;
+        }
+        hr
+        {
+            border-color: #808080;
+            background-color: #808080;
+            color: #808080;
+        }
+        #analysis_stats
+        {
+            display: none;
+        }
+        </style>
+{% endblock %}
+{% block js %}
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+        <script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/ace/1.1.01/ace.js" type="text/javascript" charset="utf-8"></script>
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.2.2/d3.v3.min.js"></script>
+        <script src="{% static "js/collapsible_lists.js" %}"></script>
+        <!--<script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>-->
+        <script>
+        var setup_complete = {{ setup_complete }};
+        var selected_repository = null;
+        var selected_repository_url = {% if selected_repository_url %}"{{ selected_repository_url }}"{% else %}null{% endif %}
+        var folder_to_store_tests_in = {% if folder_to_store_tests_in %}"{{ folder_to_store_tests_in }}"{% else %}null{% endif %}
+        var app_key = "{{ app_key }}";
+        var editor = null;
+        var test_code_editor = null;
+        var test_id= null;
+
+        function copy_to_clipboard()
+        {
+            //TODO: replace with jquery ui dialog
+            window.alert("Copy to clipboard and paste into file: Ctrl+C");
+        }
+        function prompt_for_test_storage_location()
+        {
+            $.get('/code_tree', { repo: selected_repository }, function(data)
+            {
+                $("#tree_dialog .modal-body").html(data);
+                if(data!="Please select a repository first.")
+                    CollapsibleLists.applyTo(document.getElementById('tree_list'));
+                $('#tree_dialog').modal();
+                $('a.tree').click(function(e)
+                {
+                    e.preventDefault();
+                    folder_to_store_tests_in = $(this).attr('path');
+                    store_folder();
+                });
+            }, "json");
+        }
+        function store_folder()
+        {
+            $.get('/store_test_in_folder', { url:selected_repository_url, folder: folder_to_store_tests_in }, function(data)
+            {
+                console.log(data);
+            }, "json");
+        }
+        function parse_message(message)
+        {
+            var command = message.command;
+            var value = message.val;
+            if(command=="received_data_from_tracer")
+            {
+                $("#waiting_for_trace_spinner").html("<span class='glyphicon-ok-sign glyphicon-large'></span>");
+                $("#waiting_for_trace_text").removeClass('text-warning').addClass('text-success');
+                $("#waiting_for_trace_text").html("We've received data from your server!");
+                $("#setup_dialog .modal-footer").html("<a href='#' class='btn btn-success' data-dismiss='modal'>Finish</a>");//will overwrite the existing 'close' button
+            }
+        }
+        function toggle_middle_pane()
+        {
+            $("#editor").show();
+            $("#traces").hide();
+            $("#generate_button").show();
+            $("#breadcrumbs").show();
+        }
+        function initialize_editor()
+        {
+            editor = ace.edit("editor");
+            editor.setTheme("ace/theme/monokai");
+            editor.getSession().setMode("ace/mode/python");
+            editor.scrollToRow(0);
+            editor.getSession().setUseWrapMode(true);
+            editor.setPrintMarginColumn(false);
+            editor.setReadOnly(true);
+        }
+        function initialize_test_code_editor()
+        {
+            test_code_editor = ace.edit("test_code");
+            test_code_editor.setTheme("ace/theme/monokai");
+            test_code_editor.getSession().setMode("ace/mode/python");
+            test_code_editor.scrollToRow(0);
+            test_code_editor.getSession().setUseWrapMode(true);
+            test_code_editor.setPrintMarginColumn(false);
+            test_code_editor.setReadOnly(true);
+            test_code_editor.renderer.setShowGutter(false);
+        }
+        function display_code_coverage(coverage)
+        {
+            var circleData = [{ "cx": 100, "cy": 100, "radius": 75, "color" : "green" }];
+ 
+            //Create the SVG Viewport
+            var svgContainer = d3.select("#code_coverage").append("svg")
+            .attr("width",200)
+            .attr("height",200);
+ 
+            //Add circles to the svgContainer
+            var circles = svgContainer.selectAll("circle")
+            .data(circleData)
+            .enter()
+            .append("circle");
+
+            //Add the circle attributes
+            var circleAttributes = circles
+            .attr("cx", function (d) { return d.cx; })
+            .attr("cy", function (d) { return d.cy; })
+            .attr("r", function (d) { return d.radius; })
+            .attr("stroke", "red")
+            .attr("stroke-width", 2)
+            .attr("style", "fill:none");
+
+            //Add the SVG Text Element to the svgContainer
+            var text = svgContainer.selectAll("text")
+            .data(circleData)
+            .enter()
+            .append("text");
+
+            //Add SVG Text Element Attributes
+            var textLabels = text
+            .attr("x", function(d) { return d.cx - 10; })
+            .attr("y", function(d) { return d.cy; })
+            .text( function (d) { return coverage + "%"; })
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "20px")
+            .attr("fill", "black");
+        }
+        $(document).ready(function()
+        {
+            /*editor.getSession().on("changeScrollTop", function()
+            {
+                var position = editor.session.getScrollTop();
+                $("#debugger").scrollTop(position);
+            });
+            $("#debugger").scroll(function()
+            {
+                var position = $("#debugger").scrollTop();
+                editor.session.setScrollTop(position);
+            });*/
+    
+            /*function change_text()
+            {
+                editor.session.doc.setValue($("#switch_text").html());
+            }*/
+            //start row, start column, end row, end column
+            $("#right_pane").hide();
+            $("#generate").click(function()
+            {
+                $("#right_pane").show("slide", { direction: "right" }, 700);
+                test_code_editor.focus();
+                test_code_editor.gotoLine(1);
+                select = new Range(1,0,1,1);
+                test_code_editor.addSelectionMarker(select);
+            });
+            $("#back").click(function()
+            {
+                $("#traces").show();
+                $("#editor").hide();
+                editor.destroy();
+                $("#editor").remove();
+                test_code_editor.destroy();
+                $("#test_code_editor").remove();
+                $("#generate_button").hide();
+                $("#right_pane").hide("slide", { direction: "right" }, 700);
+                $("#breadcrumbs").hide();
+            });
+            $("#copy_button").click(function()
+            {
+                test_code_editor.focus();
+                test_code_editor.gotoLine(1);
+                test_code_editor.selectAll();
+                copy_to_clipboard();
+            });
+            $("#commit_button").click(function()
+            {
+                //TODO: if it's the first time, prompt for location to store
+                if (folder_to_store_tests_in==null)
+                    prompt_for_test_storage_location();
+                if (folder_to_store_tests_in!=null)
+                {
+                    $.get('/commit_test_to_repo', { url: selected_repository_url, message: 'test message', test_id: test_id }, function(data)
+                    {
+                        console.log(data);
+                    });
+                }
+            });
+            $("#close_unit_test_sidebar").click(function(e)
+            {
+                e.preventDefault();
+                $("#right_pane").hide("slide", { direction: "right" });
+            });
+            //prompt them to select a repo if setup is not complete
+            if (setup_complete==false)
+            {
+                $.get('/repos', function(data)
+                {
+                    //create dialog
+                    var html = "";
+                    $.each(data, function(index,value)
+                    {
+                        html += "<option value='" + value.url + "'>" + value.name + "</option>";
+                    });
+                    $("#repo_select option:first").after(html);
+                    $('#myTab a:first').tab('show');
+                    $('#setup_dialog').modal();
+                }, "json");
+            }
+            $('#myTab a').click(function(e)
+            {
+                e.preventDefault();
+                $(this).tab('show');
+            });
+            $("#repo").on("change", function()
+            {
+                console.log('repo selected');
+                var url = $("#repo option:selected").val();
+                var name = $("#repo option:selected").text();
+                selected_repository = name;
+                selected_repository_url = url;
+                $.get('/clone_repo', { url: url, name: name }, function(data)
+                {
+
+                }, "json");
+            });
+            $(".notify").on("click", function()
+            {
+                var lang = $(this).attr('lang');
+                var parent = $(this).parent();
+                var button = $(this);
+                $.get('/notify_lang', { lang: lang }, function(data)
+                {
+                    button.remove();
+                    parent.append("<span style='color: green'>We'll keep you posted.</span>");
+                }, "json");
+            });
+            $(".trace_link").on("click", function()
+            {
+                test_id = $(this).attr('test_id');
+                $.get('/code/' + test_id, {  }, function(data)
+                {
+                    $("#traces").after("<div id='editor'></div>");
+                    $("#editor").html(data.code.join("&#10;"));
+                    $("#copy_commit").before("<div id='test_code'></div>");
+                    $("#test_code").html(data.test_code);
+                    initialize_editor();
+                    initialize_test_code_editor();
+                    toggle_middle_pane();
+                    var Range = ace.require('ace/range').Range;
+                    $.each(data.lines_executed, function(index, value)
+                    {
+                        editor.session.addMarker(new Range( value, 0, value+1, 0), "lines_executed", "fullLine");// 0-indexed
+                    });
+                }, "json");
+            });
+            var data_pipe = new WebSocket("ws://54.244.113.211:8888/web");//TODO: replace with sockjs for older browsers
+            data_pipe.onopen = function (event)
+            {
+                data_pipe.send(JSON.stringify({'command':'subscribe', 'app_key': app_key }));
+            }
+            data_pipe.onmessage = function (event)
+            {
+                var message = event.data;
+                message = JSON.parse(message);
+                console.log(message);
+                parse_message(message);
+            }
+            window.onunload=function()
+            {
+                data_pipe.close();
+            };
+            display_code_coverage(5);
+        });
+        </script>
+{% endblock %}
+{% block body %}
+    <div id='top'>
+        <span id='logo' style='float: left'>splintera</span>
+        <span id='breadcrumbs'><span class="glyphicon glyphicon-chevron-left"></span><a href='#' id='back'> Back to Code</a></span>
+    </div>
+    <div id="left_pane">
+        <input type="text" id="search" class="form-control" placeholder="Search">
+        <div class="btn-group" style="float:none">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" id="repo_selection">{{ selected_repo }}<span class="caret"></span></button>
+            <ul class="dropdown-menu" role="menu">
+            {% for repo in repos %}
+                <li><a href="{{ repo.url }}">{{ repo.name }}</a></li>
+            {% endfor %}
+            </ul>
+        </div>
+        <hr width="100%">
+        <div id='test_types'>
+            <ul class="nav nav-pills nav-stacked">
+            <li class="active">
+                <a href="#">
+                    <span class="badge pull-right">42</span>
+                    Unit Tests
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <span class="badge pull-right">0</span>
+                    Integration Tests
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <span class="badge pull-right">0</span>
+                    End-to-End Tests
+                </a>
+            </li>
+        </div>
+        <div id='code_coverage'>
+            <h4>Code Coverage</h4>
+        </div>
+        <div id='analysis_stats'>
+        Running on 5 servers
+        Graph of # traces collected over time
+        Tests Created, Hours Saved
+        </div>
+        <div id='invite'>
+        Share Splintera button
+        </div>
+        <div id='help'>
+        <a href='/accounts/logout'>{{ name }}</a> | <a href=''>Help</a> | <a href=''>Feedback</a>
+        <textarea id='chat' class='form-control' rows='1'>Chat with support</textarea>
+        </div>
+    </div>
+    <div id='middle_pane'>
+        <div id='traces'>
+            Please click on the code you'd like to create a test for:
+            <table id="trace_container" class="table table-striped">
+            {% for trace in traces %}
+                <tr><td><a href='#' class='trace_link' test_id='{{trace.0}}'>{{ trace.1 }}</a> {{ trace.2 }}</td></tr>
+            {% endfor %}
+            </table>
+        </div>
+        <!--<div id="editor"></div>-->
+        <div id='generate_button' style='display:none;' align='center'>
+            <button class="btn btn-large btn-primary btn-success" id="generate" type="button">Generate Test</button>
+        </div>
+    </div>
+    <div id='right_pane'>
+        <div id="debugger"></div>
+        <div id='test_code_sidebar'>
+            <p style="text-align:center">Unit Test Code:<span id='close_test_code_sidebar'><a href='#' id='close_unit_test_sidebar'>x</a></span></p>
+            <!--<div id='test_code'>{{ test_code }}</div>-->
+            
+                <div id='copy_commit' class="btn-toolbar">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-success" id='copy_button'>Copy</button>
+                        <button type="button" class="btn btn-success" id='commit_button'>Commit</button>
+                    </div>
+                </div>
+            
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal fade" id="setup_dialog" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title">Get Started</h4>
+                </div>
+                <div class="modal-body">
+                    <p><strong>1.  Please select the repository with the web app you'd like to test:</strong><span id='repo_select'><select name='repo' id='repo'><option value=''>Please select</option></select></span></p>
+                    <p><strong>2.  Download the splintera client onto your staging server:</strong>
+                        <ul class="nav nav-tabs" id="myTab">
+                            <li class="active"><a href="#python">Python</a></li>
+                            <li><a href="#ruby">Ruby</a></li>
+                            <li><a href="#php">PHP</a></li>
+                            <li><a href="#javascript">Javascript</a></li>
+                        </ul>
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="python"><div class="well well-sm">$ pip install -e git+http://github.com/skunkwerk/splintera-client.git#egg=splintera-client
+                            <br/>pip install -U mock</div></div>
+                            <div class="tab-pane" id="ruby"><div class="well well-sm">Ruby support is coming soon! <button type="button" class="btn btn-info notify" lang="ruby">Email me when it's ready</button></div></div>
+                            <div class="tab-pane" id="php"><div class="well well-sm">PHP support is coming soon!  <button type="button" class="btn btn-info notify" lang="php">Email me when it's ready</button></div></div>
+                            <div class="tab-pane" id="javascript"><div class="well well-sm">Javascript support is coming soon!  <button type="button" class="btn btn-info notify" lang="javascript">Email me when it's ready</button></div></div>
+                        </div>
+                    </p>
+                    <p><strong>3.  Install splintera into your web app:</strong>
+                        <div class="well well-sm">In your staging server's settings.py file:
+                        <ul>
+                            <li>Add 'splintera_client' to your INSTALLED_APPS</li>
+                            <li>Add 'splintera_client.tracer.MiddleWare' to your MIDDLEWARE_CLASSES</li>
+                            <li>Add 'APP_KEY'='{{ app_key }}'</li>
+                        </ul>
+                        </div>
+                    </p>
+                    <hr/>
+                    <p align='center'>Now, just point your browser to your web app's homepage</p>
+                    <p id='waiting_for_trace_spinner' align='center'><img src="{% static "images/loading.gif" %}"></p>
+                    <p id='waiting_for_trace_text' align='center' class='text-warning'>Waiting for client connection</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+    <div class="modal fade" id="tree_dialog" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title">Please Select a Folder to Store the Test In</h4>
+                </div>
+                <div class="modal-body">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+{% endblock %}

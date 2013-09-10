@@ -11,30 +11,44 @@
 body
 {
     background-color: black;
-    background-image: url('{% static "images/fractal.png" %}');
+    background-image: url('/static/images/background.jpg');
     background-repeat:no-repeat;
-    background-position: right 20px;
+    background-size: 100%;
 }
 #container
 {
-    width: 30%;
-    height: 170px;
+    /*width: 30%;
+    height: 170px;*/
     background-color: white;
     position: absolute;
-    top:0;
-    text-align: center;
+    top:30px;
+    left: 30px;
+    opacity: 0.8;
+    /*text-align: center;
     bottom: 0;
     left: 0;
     right: 0;
-    margin: auto;
+    margin: auto;*/
     -moz-border-radius: 15px;
     border-radius: 15px;
     padding: 15px;
-    border: 2px solid #600000;
+    /*border: 2px solid #600000;*/
+}
+#learn
+{
+    position: absolute;
+    top: 30px;
+    right: 30px;
+}
+#social_legal
+{
+    position: absolute;
+    right: 30px;
+    bottom: 30px;
 }
 #logo
 {
-    font-family: 'Comfortaa', cursive; color: blue; font-weight: normal; font-size: 24px;
+    font-family: 'Comfortaa', cursive; color: blue; font-weight: normal; font-size: 36px;
     position: relative;
     width: 100%;
     text-align: center;
@@ -90,7 +104,9 @@ $(document).ready(function()
         {% if form.errors %}
         <p>Your username and password didn't match. Please try again.</p>
         {% endif %}
-        <p>Get started for free in under a minute:
+        <h2 style="color: #A52A2A">Painless web app testing<br/> for busy developers</h2>
+        <h4>Auto-generate unit tests with 1 click</h4>
+        <h4 style='text-align:center'>Get started for free:</h4>
         <div class="btn-toolbar pagination-centered">
             <div class="btn-group">
                 <a href="{% url 'socialauth_begin' 'github' %}" class="btn btn-success"><i class="icon-github icon-large"></i> Login with GitHub</a>
@@ -100,8 +116,14 @@ $(document).ready(function()
                 <ul class="dropdown-menu">
                     <li><a href="{% url 'socialauth_begin' 'bitbucket' %}"><i class="icon-bitbucket icon-large"></i> Login with Bitbucket</a></li>
                 </ul>
-            </div>
         </div>
-        </p>
+    </div>
+    </div>
+    <div id='learn'>
+        <a href='#'>LEARN MORE</a> | <a href='#'>SEE THE VIDEO</a>
+    </div>
+    <div id='social_legal'>
+        <p style='float:right'><img src='/static/images/twitter.png'> <img src='/static/images/rss.png'></p>
+        <p>©2013 Splintera, Inc. All rights reserved.</p>
     </div>
 {% endblock %}

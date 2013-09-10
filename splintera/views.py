@@ -16,6 +16,66 @@ import time
 logger = logging.getLogger(__name__)
 
 @login_required()
+def new(request):
+    #socket with urllib2
+    user = request.user.username
+    name = request.user.first_name
+    
+    all_repos = repos(request,internal=True)
+    # get the latest traces from the database for this group
+    import MySQLdb as mdb
+    db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
+    cur = db.cursor()
+    query = "SELECT t3.id, t3.file_name, t3.function_name, t4.url, t4.repo_name FROM trace t1 JOIN account_app_key t2 ON (t1.app_key=t2.app_key) JOIN test t3 ON (t3.trace_id=t1.id) LEFT JOIN repository t4 ON (t1.app_key=t4.app_key) WHERE t2.username=%s ORDER BY t1.date DESC LIMIT 20"
+    result = cur.execute(query, (user))
+    traces = []
+    for id, file_name, function_name, url, repo_name in cur.fetchall():
+        if repo_name=="":
+            username_and_repo_name = url.strip(".git").split("https://github.com/")[1]
+            repo_name = url.strip(".git").split("https://github.com")[1].split("/")[2]
+        # now, strip anything up to the repo_name from the file_name
+        parts = file_name.split(repo_name)
+        if len(parts)>1:
+            file_name = parts[1] # relative path
+        traces.append([id,str(function_name),' in ' + str(file_name)])
+    # remove the current repository from all_repos list
+    found = None
+    for key,val in enumerate(all_repos):
+        if val['name']==repo_name:
+            found=key
+    if found is not None:
+        del all_repos[found]
+
+    query = "SELECT folder_to_store_tests_in FROM repository t1 JOIN account_app_key t2 ON (t1.app_key=t2.app_key) WHERE t2.username=%s"
+    result = cur.execute(query, (user))
+    row = cur.fetchone()
+    if row is not None:
+        folder_to_store_tests_in = row[0]
+    else:
+        folder_to_store_tests_in = None
+
+    query = "SELECT url, t1.app_key FROM repository t1 JOIN account_app_key t2 ON (t1.app_key=t2.app_key) WHERE t2.username=%s"
+    result = cur.execute(query, (user))
+    row = cur.fetchone()#TODO: there can be > 1
+    if row is not None:
+        app_key = row[1]
+        selected_repository_url = row[0]
+    else:
+        app_key = None
+        selected_repository_url = None
+
+    # is setup complete?
+    query = "SELECT url FROM repository t1 JOIN account_app_key t2 ON (t1.app_key=t2.app_key) WHERE t2.username=%s AND t1.received_data_from_tracer=1"
+    result = cur.execute(query, (user))
+    row = cur.fetchone()#TODO: there can be > 1
+    if row is not None:
+        setup_complete = "true";
+    else:
+        setup_complete = "false";# JS has lowercase booleans
+
+    return render_to_response('new.html', {"traces": traces, "name": name, "repos": all_repos, "selected_repo": repo_name, "folder_to_store_tests_in": folder_to_store_tests_in, "selected_repository_url": selected_repository_url, "setup_complete": setup_complete, "app_key": app_key})
+
+@login_required()
 def dashboard(request):
     #socket with urllib2
     user = request.user.username
@@ -60,7 +120,7 @@ def get_auth_key(username):
     access_token = extra_data.replace('"','').strip()
     return access_token
 
-def repos(request):#user
+def repos(request, internal=False):#user
     """
     colons indicate a URL parameter that you need to replace with a value
     http://developer.github.com/v3/repos/
@@ -84,7 +144,10 @@ def repos(request):#user
             if org_r.status_code==200:
                 for repo in org_r.json():
                     all_repos.append({'name':repo['name'],'url':repo['clone_url'],'language':repo['language']})
-    return HttpResponse(json.dumps(all_repos), content_type="application/json")
+    if internal==False:
+        return HttpResponse(json.dumps(all_repos), content_type="application/json")
+    else:
+        return all_repos
 
 def clone_repo(request):
     """
@@ -165,14 +228,14 @@ def clone_repo(request):
 
     if path_to_requirements is not None and path_to_settings is not None:
         # store this path in the database for the repo
-        query = "INSERT INTO repository(app_key,url,dependencies_file,settings_file) VALUES(%s,%s,%s,%s)"
-        result = cur.execute(query, (unique_key,url,path_to_requirements,path_to_settings))
+        query = "INSERT INTO repository(app_key,repo_name,url,dependencies_file,settings_file) VALUES(%s,%s,%s,%s)"
+        result = cur.execute(query, (unique_key,repo_name,url,path_to_requirements,path_to_settings))
     elif path_to_requirements is not None:
-        query = "INSERT INTO repository(app_key,url,dependencies_file) VALUES(%s,%s,%s)"
-        result = cur.execute(query, (unique_key,url,path_to_requirements))
+        query = "INSERT INTO repository(app_key,repo_name,url,dependencies_file) VALUES(%s,%s,%s)"
+        result = cur.execute(query, (unique_key,repo_name,url,path_to_requirements))
     elif path_to_settings is not None:
-        query = "INSERT INTO repository(app_key,url,settings_file) VALUES(%s,%s,%s)"
-        result = cur.execute(query, (unique_key,url,path_to_settings))
+        query = "INSERT INTO repository(app_key,repo_name,url,settings_file) VALUES(%s,%s,%s)"
+        result = cur.execute(query, (unique_key,repo_name,url,path_to_settings))
     else:
         query = "INSERT INTO repository(app_key,url) VALUES(%s,%s)"
         result = cur.execute(query, (unique_key,url))
@@ -319,6 +382,17 @@ def commit_test_to_repo(request):
     result = [output,errors]
     return HttpResponse(json.dumps(result), content_type="application/json")
 
+def notify_lang(request):
+    user = request.user.username
+    lang = request.GET.get('lang')
+    import MySQLdb as mdb
+    db = mdb.connect('dbase.akbars.net','skunkwerk','motherlode721!','splintera_app')
+    cur = db.cursor()
+    query = "INSERT INTO notify_client_language_available (username, language) VALUES(%s, %s)"
+    result = cur.execute(query, (user, lang))
+    db.commit()
+    return HttpResponse(json.dumps(result), content_type="application/json")
+
 @login_required()
 def code(request, test_id):
     # get the code to display for the trace
@@ -371,5 +445,5 @@ def code(request, test_id):
     # get the return value
     # get the lines executed
     # get the unit test code
-    return render_to_response('code.html', {"code": code_lines, "lines_executed": lines_executed, "input_parameters": input_parameters, "return_value": return_value, "test_code": test_code, "folder_to_store_tests_in": folder_to_store_tests_in, "selected_repository_url": selected_repository_url, "setup_complete": setup_complete, "test_id": test_id, "app_key": app_key })
-#return HttpResponse(simplejson.dumps(response_data), content_type="application/json")
+    response_data = {"code": code_lines, "lines_executed": lines_executed, "input_parameters": input_parameters, "return_value": return_value, "test_code": test_code, "folder_to_store_tests_in": folder_to_store_tests_in, "selected_repository_url": selected_repository_url, "setup_complete": setup_complete, "test_id": test_id, "app_key": app_key }
+    return HttpResponse(simplejson.dumps(response_data), content_type="application/json")

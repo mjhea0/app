@@ -396,19 +396,22 @@ var CollapsibleLists =
                 e.preventDefault();
                 $("#test_code_sidebar").hide("slide", { direction: "right" });
             });
-            //prompt them to select a repo if this is their first login
-            $.get('/repos', function(data)
+            //prompt them to select a repo if setup is not complete
+            if (setup_complete==false)
             {
-                //create dialog
-                var html = "";
-                $.each(data, function(index,value)
+                $.get('/repos', function(data)
                 {
-                    html += "<option value='" + value.url + "'>" + value.name + "</option>";
-                });
-                $("#repo_select option:first").after(html);
-                $('#myTab a:first').tab('show');
-                $('#setup_dialog').modal();
-            }, "json");
+                    //create dialog
+                    var html = "";
+                    $.each(data, function(index,value)
+                    {
+                        html += "<option value='" + value.url + "'>" + value.name + "</option>";
+                    });
+                    $("#repo_select option:first").after(html);
+                    $('#myTab a:first').tab('show');
+                    $('#setup_dialog').modal();
+                }, "json");
+            }
             $('#myTab a').click(function(e)
             {
                 e.preventDefault();
@@ -491,7 +494,7 @@ var CollapsibleLists =
                     </div>
                 <div class="modal-body">
                 <p><strong>1.  Please select the repository with the web app you'd like to test:</strong><span id='repo_select'><select name='repo' id='repo'><option value=''>Please select</option></select></span></p>
-                <p><strong>2.  Download the splintera client:</strong>
+                <p><strong>2.  Download the splintera client onto your staging server:</strong>
                     <ul class="nav nav-tabs" id="myTab">
                         <li class="active"><a href="#python">Python</a></li>
                         <li><a href="#ruby">Ruby</a></li>
@@ -507,11 +510,11 @@ var CollapsibleLists =
                     </div>
                 </p>
                 <p><strong>3.  Install splintera into your web app:</strong>
-                    <div class="well well-sm">In your settings.py file:
+                    <div class="well well-sm">In your staging server's settings.py file:
                     <ul>
                         <li>Add 'splintera_client' to your INSTALLED_APPS</li>
                         <li>Add 'splintera_client.tracer.MiddleWare' to your MIDDLEWARE_CLASSES</li>
-                        <li>Add 'SPLINTERA_CLIENT_KEY'='abcdefasdyg283ytouhvjnscowuet'</li>
+                        <li>Add 'APP_KEY'='{{ app_key }}'</li>
                     </ul>
                     </div>
                 </p>
