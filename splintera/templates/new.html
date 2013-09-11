@@ -194,6 +194,10 @@
         {
             display: none;
         }
+        #invite
+        {
+            display: none;
+        }
         </style>
 {% endblock %}
 {% block js %}
@@ -464,7 +468,7 @@
             {
                 data_pipe.close();
             };
-            display_code_coverage(5);
+            display_code_coverage(0);
         });
         </script>
 {% endblock %}
@@ -488,7 +492,7 @@
             <ul class="nav nav-pills nav-stacked">
             <li class="active">
                 <a href="#">
-                    <span class="badge pull-right">42</span>
+                    <span class="badge pull-right">0</span>
                     Unit Tests
                 </a>
             </li>
@@ -568,7 +572,7 @@
                             <li><a href="#javascript">Javascript</a></li>
                         </ul>
                         <div class="tab-content">
-                            <div class="tab-pane active" id="python"><div class="well well-sm">$ pip install -e git+http://github.com/skunkwerk/splintera-client.git#egg=splintera-client
+                            <div class="tab-pane active" id="python"><div class="well well-sm">$ pip install -e git+http://github.com/splintera/python-django-client.git#egg=splintera-client
                             <br/>pip install -U mock</div></div>
                             <div class="tab-pane" id="ruby"><div class="well well-sm">Ruby support is coming soon! <button type="button" class="btn btn-info notify" lang="ruby">Email me when it's ready</button></div></div>
                             <div class="tab-pane" id="php"><div class="well well-sm">PHP support is coming soon!  <button type="button" class="btn btn-info notify" lang="php">Email me when it's ready</button></div></div>
