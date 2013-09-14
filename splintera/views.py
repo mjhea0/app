@@ -75,6 +75,9 @@ def new(request):
 
     return render_to_response('new.html', {"traces": traces, "name": name, "repos": all_repos, "selected_repo": repo_name, "folder_to_store_tests_in": folder_to_store_tests_in, "selected_repository_url": selected_repository_url, "setup_complete": setup_complete, "app_key": app_key})
 
+def learn_more(request):
+    return render_to_response('learn_more.html')
+
 @login_required()
 def dashboard(request):
     #socket with urllib2

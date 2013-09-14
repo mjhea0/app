@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ Splintera }}{% endblock %}
+{% load staticfiles %}
+{% block css %}
+        <link href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+        <link href='http://fonts.googleapis.com/css?family=Josefin+Sans|Alegreya+SC|Krona+One' rel='stylesheet' type='text/css'>
+        <style>
+        td
+        {
+            min-height: 650px;
+        }
+        #problem
+        {
+            background-color: red;
+            color: white;
+            margin: 0px;
+            padding: 0px;
+        }
+        #problem td h2
+        {
+            background-color: red;
+            color: white;
+            margin: 0px;
+            padding: 0px;
+            font-family: 'Josefin Sans', sans-serif;
+        }
+        #solution
+        {
+            background-color: blue;
+            color: white;
+            margin: 0px;
+            padding: 0px;
+        }
+        #solution td h2
+        {
+            background-color: blue;
+            color: white;
+            margin: 0px;
+            padding: 0px;
+            min-height: 500px;
+            font-family: 'Josefin Sans', sans-serif;
+        }
+        #main
+        {
+            width: 100%;
+            height: 100%;
+            padding: 0px;
+            margin: 0px;
+        }
+        </style>
+{% endblock %}
+{% block js %}
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+        <script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+        <script>
+        </script>
+{% endblock %}
+{% block body %}
+<table id='main'>
+<tr id='problem'>
+<td>
+<h1 style='text-align:center'>THE PROBLEM</h1>
+<br/>
+<h2>You've inherited tens of thousands of lines of legacy code with no tests.</h2>
+<h2>Your existing test suite is out-of-date, broken, and incomplete.</h2>
+<h2>You never get the time to write tests, as you're busy writing new features or fixing bugs.</h2>
+<h2>It's a constant struggle.</h2>
+what makes hard
+<h2>More test code than functional code.</h2>
+<h2>Tightly coupled, complex - so when one thing breaks, everything breaks.</h2>
+<h2>No QA team.</h2>
+<br/>
+<br/>
+</td>
+</tr>
+<tr id='solution'>
+<td>
+<h1 style='text-align:center'>OUR SOLUTION</h1>
+<h2>Let the computer write tests for you.</h2>
+<br/>
+<br/>
+</td>
+</tr>
+</table>
+{% endblock %}

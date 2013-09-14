@@ -72,7 +72,7 @@
         #help
         {
             position: absolute;
-            bottom: 10px;
+            bottom: 60px;
         }
         .table-striped tbody > tr:nth-child(odd) > td, .table-striped tbody > tr:nth-child(odd) > th
         {
@@ -493,6 +493,12 @@
             <li class="active">
                 <a href="#">
                     <span class="badge pull-right">0</span>
+                    Untested Code
+                </a>
+            </li>
+            <li>
+                <a href="#">
+                    <span class="badge pull-right">0</span>
                     Unit Tests
                 </a>
             </li>
@@ -521,7 +527,7 @@
         Share Splintera button
         </div>
         <div id='help'>
-        <a href='/accounts/logout'>{{ name }}</a> | <a href=''>Help</a> | <a href=''>Feedback</a>
+        <a href='/accounts/logout'>{{ name }}</a> | <a href='#'>Help</a> | <a href='mailto:feedback@splintera.com'>Feedback</a>
         <textarea id='chat' class='form-control' rows='1'>Chat with support</textarea>
         </div>
     </div>
@@ -573,7 +579,7 @@
                         </ul>
                         <div class="tab-content">
                             <div class="tab-pane active" id="python"><div class="well well-sm">$ pip install -e git+http://github.com/splintera/python-django-client.git#egg=splintera-client
-                            <br/>pip install -U mock</div></div>
+                            <br/>$ pip install -U mock</div></div>
                             <div class="tab-pane" id="ruby"><div class="well well-sm">Ruby support is coming soon! <button type="button" class="btn btn-info notify" lang="ruby">Email me when it's ready</button></div></div>
                             <div class="tab-pane" id="php"><div class="well well-sm">PHP support is coming soon!  <button type="button" class="btn btn-info notify" lang="php">Email me when it's ready</button></div></div>
                             <div class="tab-pane" id="javascript"><div class="well well-sm">Javascript support is coming soon!  <button type="button" class="btn btn-info notify" lang="javascript">Email me when it's ready</button></div></div>

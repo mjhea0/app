@@ -2,50 +2,14 @@
 
 {% block title %}{{ Login }}{% endblock %}
 {% block css %}
-<link href='http://fonts.googleapis.com/css?family=Comfortaa' rel='stylesheet' type='text/css'>
+<!--[if lt IE 9]> <script src="/static/js/html5shiv.js"></script> <![endif]-->
+<link href='http://fonts.googleapis.com/css?family=Comfortaa|Nunito' rel='stylesheet' type='text/css'>
 {% load staticfiles %}
 <link rel="stylesheet" type="text/css" href="{% static "css/bootstrap.min.css" %}">
+<link rel="stylesheet" type="text/css" href="/static/css/parallax_scrolling.css">
 <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css" rel="stylesheet">
 <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
 <style>
-body
-{
-    background-color: black;
-    background-image: url('/static/images/background.jpg');
-    background-repeat:no-repeat;
-    background-size: 100%;
-}
-#container
-{
-    /*width: 30%;
-    height: 170px;*/
-    background-color: white;
-    position: absolute;
-    top:30px;
-    left: 30px;
-    opacity: 0.8;
-    /*text-align: center;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: auto;*/
-    -moz-border-radius: 15px;
-    border-radius: 15px;
-    padding: 15px;
-    /*border: 2px solid #600000;*/
-}
-#learn
-{
-    position: absolute;
-    top: 30px;
-    right: 30px;
-}
-#social_legal
-{
-    position: absolute;
-    right: 30px;
-    bottom: 30px;
-}
 #logo
 {
     font-family: 'Comfortaa', cursive; color: blue; font-weight: normal; font-size: 36px;
@@ -89,41 +53,91 @@ body
 </style>
 {% endblock %}
 {% block js %}
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+<!--<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>-->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <script src="{% static "js/bootstrap.min.js" %}"></script>
+<script src="{% static "js/parallax_scrolling.js" %}"></script>
 <script>
 $(document).ready(function()
 {
-
+	$("#learn_more").on("click", function(event)
+	{
+		event.preventDefault();
+		$(":root").css("overflow","auto");
+		//$("::-webkit-scrollbar").css("display","block");
+		$('html, body').animate({ scrollTop: $("#second").offset().top }, 1500);
+		return false;
+	});
 });
 </script>
 {% endblock %}
 {% block body %}
-    <div id='container'>
-        <span id='logo'>splintera</span>
-        {% if form.errors %}
-        <p>Your username and password didn't match. Please try again.</p>
-        {% endif %}
-        <h2 style="color: #A52A2A">Painless web app testing<br/> for busy developers</h2>
-        <h4>Auto-generate unit tests with 1 click</h4>
-        <h4 style='text-align:center'>Get started for free:</h4>
-        <div class="btn-toolbar pagination-centered">
-            <div class="btn-group">
-                <a href="{% url 'socialauth_begin' 'github' %}" class="btn btn-success"><i class="icon-github icon-large"></i> Login with GitHub</a>
-                <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown">
-                <span class="caret"></span>
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a href="{% url 'socialauth_begin' 'bitbucket' %}"><i class="icon-bitbucket icon-large"></i> Login with Bitbucket</a></li>
-                </ul>
-        </div>
-    </div>
-    </div>
-    <div id='learn'>
-        <a href='#'>LEARN MORE</a> | <a href='#'>SEE THE VIDEO</a>
-    </div>
-    <div id='social_legal'>
-        <p style='float:right'><img src='/static/images/twitter.png'> <img src='/static/images/rss.png'></p>
-        <p>©2013 Splintera, Inc. All rights reserved.</p>
-    </div>
+<div id="main" role="main">
+
+	<!-- Section #1 / Intro -->
+	<section id="first" class="story" data-speed="8" data-type="background">    	
+		<div class='bg' style='min-height: 1000px; z-index:0; background: url(/static/images/developer_ben_compressed.jpg) -175px -200px no-repeat fixed;'></div>		
+		<article style='z-index:1'>
+		        <span id='logo'>splintera</span>
+		        <h2 style="color: #A52A2A">Painless web app testing<br/> for busy developers</h2>
+		        <h4 style='text-align:center'>Auto-generate unit tests with 1 click</h4>
+		        <h4 style='text-align:center'>Get started for free</h4>
+		        <div style='text-align: center'>
+		            <div class="btn-group">
+		                <a href="{% url 'socialauth_begin' 'github' %}" class="btn btn-success"><i class="icon-github icon-large"></i> Login with GitHub</a>
+		                <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown">
+		                <span class="caret"></span>
+		                </button>
+		                <ul class="dropdown-menu">
+		                    <li><a href="{% url 'socialauth_begin' 'bitbucket' %}"><i class="icon-bitbucket icon-large"></i> Login with Bitbucket</a></li>
+		                </ul>
+		            </div><span style='font-size: 18px;'> | <a href='#' id='learn_more'>LEARN MORE</a></span>
+		    	</div>
+		 </article>
+	</section>
+
+	<!-- Section #2 / Background Only -->
+	<section id="second" class="story" data-speed="4" data-type="background">
+		<article>
+			<h2>The Problem</h2>
+		    	<p>You've inherited tens of thousands of lines of legacy code with no tests.</p>
+			<p>Your existing test suite is out-of-date, broken, and incomplete.</p>
+		    	<p>You never get the time to write tests, as you're busy writing new features or fixing bugs.</p>
+		    	<p>It's a constant struggle.</p>
+		    	<p>yet Important</p>
+		</article>
+	</section>
+	
+	<!-- Section #3 / Photos -->
+	<section id="third" class="story" data-speed="6" data-type="background" data-offsetY="250">    	
+    		<article>
+    			<h2>Why is Testing so Hard?</h2>
+			<p>More test code than functional code..</p>
+			<p>Tightly coupled, complex - so when one thing breaks, everything breaks.</p>
+			<p>No QA team.</p>
+    		</article>
+	</section>	
+	
+
+	<!-- Section #4 -->
+	<section id="fourth" class="story" data-speed="8" data-type="background" data-offsetY="250">
+    		<article>
+    			<h2>Our Solution</h2>
+			<p>Let the computer write tests for you.</p>
+			<p>Static code analysis plus instrumentation added to your web app to collect execution traces.</p>
+			<p>Analyze them to create a unit test once you verify correctness of behavior.</p>
+			<p>Dogfood your code on your staging server.  Low overhead on production.</p>
+    		</article>
+	</section>
+
+	<!-- Section #5 / The End-->
+	<section id="theend" class="story" data-speed="8" data-type="background" data-offsetY="250">
+		<!--<div class="photograph" data-type="sprite" data-offsetY="2400" data-Xposition="25%" data-speed="2"></div>-->		
+			<p>Our mission is to revolutionize how software is tested.</p>
+			<p><a href='https://twitter.com/splintera_app'><img src='/static/images/twitter.png'></a> <a href='http://splintera.tumblr.com/rss'><img src='/static/images/rss.png'></a></p>			
+			<p><a href='mailto:info@splintera.com'>Contact a human</a></p>
+			<p>+1 (650) 530-0252</p>
+			<p>©2013 Splintera, Inc.</p>
+	</section>
+</div> <!-- // End of #main -->
 {% endblock %}
